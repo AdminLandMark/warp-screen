@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>จอ LED · แจกวาร์ป</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+ @keyframes pop{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:none}}
+ .pop{animation:pop .5s cubic-bezier(.2,.8,.2,1) both}
+ @keyframes slide{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+ .slide{animation:slide 25s linear infinite;white-space:nowrap}
+ body{cursor:none}
+</style>
+</head>
+<body class="bg-black text-white font-[system-ui] overflow-hidden" ondblclick="document.documentElement.requestFullscreen()">
+<div class="h-[100dvh] p-8 flex flex-col">
+  <div class="flex justify-between items-start shrink-0">
+    <div><h1 class="text-5xl xl:text-7xl font-black bg-gradient-to-r from-fuchsia-500 via-purple-400 to-cyan-400 bg-clip-text text-transparent">แจกวาร์ปคืนนี้</h1>
+      <p id="rate" class="text-slate-500 mt-2 text-sm"></p></div>
+    <div class="text-center"><canvas id="qr" class="bg-white p-2 rounded-2xl"></canvas>
+      <p class="text-slate-500 text-xs mt-1">สแกนเพื่อขึ้นจอ</p></div>
+  </div>
+  <div id="wall" class="mt-6 grid grid-cols-3 xl:grid-cols-4 gap-5 flex-1 content-start"></div>
+  <p id="empty" class="text-slate-800 text-4xl text-center my-auto">รอวาร์ปแรกของคืนนี้…</p>
+</div>
+<div class="fixed bottom-0 inset-x-0 bg-white/5 border-t border-white/10 py-3 overflow-hidden">
+  <div id="tick" class="slide text-slate-400 px-4"></div></div>
+
+<script src="config.js"></script><script src="app.js"></script>
+<script>
+let S, rows=[];
+(async()=>{
+  S = await getSettings();
+  rate.textContent = S.packages.map(p=>`${p.min} นาที ${p.price}฿`).join('   ·   ');
+  QRCode.toCanvas(qr, location.origin + location.pathname.replace('screen.html','index.html'), { width:120, margin:1 });
+  await load();
+  sb.channel('scr').on('postgres_changes',{event:'*',schema:'public',table:'orders'},load).subscribe();
+  setInterval(tickDown, 1000);
+})();
+
+async function load(){
+  const { data } = await sb.from('orders').select('*').in('status',['live','pending']).order('end_at');
+  rows = data || []; draw();
+}
+
+async function tickDown(){
+  const now = Date.now();
+  const dead = rows.filter(o=>o.status==='live' && new Date(o.end_at) <= now);
+  for(const o of dead) await sb.from('orders').update({ status:'done' }).eq('id', o.id);
+  draw();
+}
+
+function draw(){
+  const now = Date.now();
+  const lv = rows.filter(o=>o.status==='live' && new Date(o.end_at) > now).slice(0, S.max_on_screen);
+  empty.style.display = lv.length ? 'none':'block';
+  wall.innerHTML = lv.map(o=>{
+    const left = Math.max(0, Math.ceil((new Date(o.end_at)-now)/1000));
+    return `<div class="pop relative rounded-3xl overflow-hidden aspect-[3/4] border border-white/10">
+      <img src="${o.image_url}" class="absolute inset-0 w-full h-full object-cover">
+      <div class="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black via-black/80 to-transparent">
+        <p class="text-3xl font-black truncate">${ICON[o.platform]} @${esc(o.handle)}</p>
+        <p class="text-lg text-white/50 truncate">${esc(o.message)}</p>
+        <div class="mt-3 h-1.5 bg-white/15 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-fuchsia-500 to-cyan-400" style="width:${left/(o.minutes*60)*100}%"></div></div>
+        <p class="text-right text-xs text-slate-400 mt-1 tabular-nums">${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}</p>
+      </div></div>`;
+  }).join('');
+  const q = rows.filter(o=>o.status==='pending');
+  tick.textContent = q.length ? 'คิวถัดไป: '+q.slice(0,10).map(o=>'@'+o.handle).join('   ·   ')
+    : 'สแกน QR มุมขวาบนเพื่อส่งการ์ดขึ้นจอ   ·   '+rate.textContent;
+}
+</script>
+</body></html>
