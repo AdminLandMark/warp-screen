@@ -7,7 +7,16 @@
 <title>แจกวาร์ปขึ้นจอ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<!-- ===== QRCode: ตัวหลัก + ตัวสำรอง (แก้ปัญหา 404) ===== -->
+<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.js"></script>
+<script>
+  if (typeof QRCode === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>');
+  }
+</script>
+<!-- ==================================================== -->
+
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
  input,select{font-size:16px!important}
@@ -16,36 +25,53 @@
 </head>
 <body class="bg-slate-950 text-white font-[system-ui] antialiased">
 <main class="max-w-[26rem] mx-auto px-4 pb-16" style="padding-top:calc(20px + env(safe-area-inset-top))">
+
   <header class="flex items-center gap-3">
     <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-cyan-500 grid place-items-center text-2xl">🌃</div>
-    <div><h1 id="venue" class="text-lg font-black leading-tight">…</h1><p class="text-[11px] text-slate-400">แจกวาร์ปขึ้นจอ LED หน้าเวที</p></div>
+    <div><h1 id="venue" class="text-lg font-black leading-tight">…</h1>
+      <p class="text-[11px] text-slate-400">แจกวาร์ปขึ้นจอ LED หน้าเวที</p></div>
   </header>
-  <div class="flex gap-1.5 mt-5 mb-6"><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div></div>
+
+  <div class="flex gap-1.5 mt-5 mb-6">
+    <div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div>
+    <div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div>
+  </div>
 
   <!-- STEP 1 -->
   <section class="st" data-s="1">
     <h2 class="font-black text-lg">สร้างการ์ดของคุณ</h2>
-    <label class="block relative rounded-3xl overflow-hidden border-2 border-dashed border-white/20 bg-white/[.03] aspect-[3/4] cursor-pointer mt-4">
+    <p class="text-[11px] text-slate-500 mb-4">รูปแนวตั้งสวยที่สุด · แนวนอนระบบเติมขอบเบลอให้</p>
+    <label class="block relative rounded-3xl overflow-hidden border-2 border-dashed border-white/20 bg-white/[.03] aspect-[3/4] cursor-pointer">
       <input type="file" accept="image/*" class="hidden" onchange="pick(this)">
       <img id="prev" class="absolute inset-0 w-full h-full object-cover hidden">
       <div id="ph" class="absolute inset-0 grid place-items-center text-center px-6">
-        <div><div class="text-4xl mb-2">📷</div><p class="text-sm font-semibold text-slate-300">แตะเพื่ออัปโหลดรูป</p></div></div>
+        <div><div class="text-4xl mb-2">📷</div>
+        <p class="text-sm font-semibold text-slate-300">แตะเพื่ออัปโหลดรูป</p>
+        <p class="text-[11px] text-slate-600 mt-1">ระบบย่อขนาดให้อัตโนมัติ</p></div></div>
     </label>
     <div class="flex gap-2 mt-4">
-      <select id="pf" class="bg-white/5 border border-white/10 rounded-2xl px-3 h-14 outline-none"><option value="ig">📸</option><option value="fb">💙</option><option value="tt">🎵</option></select>
-      <input id="handle" maxlength="30" placeholder="username" class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none focus:border-fuchsia-400">
+      <select id="pf" onchange="live()" class="bg-white/5 border border-white/10 rounded-2xl px-3 h-14 outline-none">
+        <option value="ig">📸</option><option value="fb">💙</option><option value="tt">🎵</option></select>
+      <input id="handle" oninput="live()" maxlength="30" placeholder="username"
+        class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none focus:border-fuchsia-400">
     </div>
-    <input id="msg" maxlength="40" placeholder="ข้อความสั้นๆ" class="w-full mt-2 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none focus:border-fuchsia-400">
-    <button onclick="n1()" class="w-full mt-6 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ถัดไป</button>
+    <input id="msg" oninput="live()" maxlength="40" placeholder="ข้อความสั้นๆ"
+      class="w-full mt-2 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none focus:border-fuchsia-400">
+    <button onclick="n1()" class="w-full mt-6 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ถัดไป · เลือกเวลา →</button>
   </section>
 
   <!-- STEP 2 -->
   <section class="st hidden" data-s="2">
-    <h2 class="font-black text-lg mb-4">เลือกแพ็กเกจ</h2>
+    <h2 class="font-black text-lg">เลือกเวลาขึ้นจอ</h2>
+    <p class="text-[11px] text-slate-500 mb-4">แตะแพ็กเกจเพื่อดูราคา</p>
     <div id="pkgs" class="grid grid-cols-2 gap-2.5"></div>
     <div id="sum" class="hidden mt-5 rounded-3xl bg-white/5 border border-white/10 p-4 text-sm"></div>
-    <label class="flex gap-2.5 text-[11px] text-slate-400 items-start mt-4"><input id="ok" type="checkbox" class="mt-0.5 w-5 h-5 accent-fuchsia-500"><span>ยินยอมเงื่อนไขร้าน</span></label>
-    <div class="flex gap-2 mt-5"><button onclick="go(1)" class="w-16 h-14 rounded-2xl bg-white/10 font-bold">←</button><button id="btnPay" onclick="n2()" class="flex-1 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ไปชำระเงิน</button></div>
+    <label class="flex gap-2.5 text-[11px] text-slate-400 items-start mt-4">
+      <input id="ok" type="checkbox" class="mt-0.5 w-5 h-5 accent-fuchsia-500">
+      <span>ยินยอมให้แสดงรูปและบัญชีบนจอในร้าน · ลบอัตโนมัติหลังปิดร้าน · ไม่คืนเงินหลังการ์ดขึ้นจอ</span></label>
+    <div class="flex gap-2 mt-5">
+      <button onclick="go(1)" class="w-16 h-14 rounded-2xl bg-white/10 font-bold">←</button>
+      <button id="btnPay" onclick="n2()" class="flex-1 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ไปชำระเงิน</button></div>
   </section>
 
   <!-- STEP 3 -->
@@ -54,50 +80,130 @@
     <div class="mt-4 rounded-3xl bg-white p-5 text-center">
       <canvas id="qr" class="mx-auto max-w-full"></canvas>
       <p id="amt" class="text-black font-black text-3xl mt-2 tabular-nums"></p>
+      <p class="text-slate-500 text-[11px] px-4">โอนให้ตรงทุกสตางค์ · เลข 2 หลักท้ายคือรหัสอ้างอิงของคุณ</p>
     </div>
+    <button onclick="saveQR()" class="w-full mt-3 h-13 py-3.5 rounded-2xl bg-white/10 font-bold text-[13px]">💾 บันทึก QR ไว้สแกนในแอปธนาคาร</button>
     <div class="mt-6 rounded-3xl border border-white/10 p-4">
       <p class="font-bold text-sm">แนบสลิปเพื่อยืนยัน</p>
-      <label class="flex items-center justify-center w-full h-14 rounded-2xl bg-emerald-500 font-black mt-3 cursor-pointer">📤 อัปโหลดสลิป <input type="file" accept="image/*" class="hidden" onchange="slip(this)"></label>
+      <p class="text-[11px] text-slate-500 mt-0.5 mb-3">ระบบอ่าน QR ในสลิปเพื่อกันสลิปซ้ำอัตโนมัติ</p>
+      <label class="flex items-center justify-center w-full h-14 rounded-2xl bg-emerald-500 font-black cursor-pointer">
+        📤 เลือกรูปสลิป <input type="file" accept="image/*" class="hidden" onchange="slip(this)"></label>
       <p id="slipMsg" class="text-[11px] mt-3 text-center text-slate-400"></p>
     </div>
   </section>
 
-  <section class="st hidden" data-s="4"><div id="status"></div><button onclick="location.reload()" class="w-full mt-4 h-14 rounded-2xl bg-white/10 font-bold">ส่งใหม่</button></section>
+  <!-- STEP 4 -->
+  <section class="st hidden" data-s="4"><div id="status"></div>
+    <button onclick="location.reload()" class="w-full mt-4 h-14 rounded-2xl bg-white/10 font-bold">ส่งการ์ดใหม่อีกใบ</button></section>
 </main>
 
 <script src="config.js"></script><script src="app.js"></script>
 <script>
-let S, blob=null, pkg=null, order=null;
-(async()=>{ S = await getSettings(); venue.textContent = S.venue; drawPkgs(); })();
-function go(n){ document.querySelectorAll('.st').forEach(e=>e.classList.toggle('hidden',+e.dataset.s!==n)); scrollTo(0,0); }
-async function pick(el){ blob = await fitPortrait(el.files[0]); prev.src = URL.createObjectURL(blob); prev.classList.remove('hidden'); ph.classList.add('hidden'); }
-function n1(){ if(!blob||!handle.value) return alert('ใส่ข้อมูลให้ครบ'); go(2); }
+let S, blob=null, pkg=null, order=null, url=null;
 
-function drawPkgs(){ pkgs.innerHTML = S.packages.map((p,i)=>{ const f=Number(p.price)===0; return `<button onclick="setPkg(${i},this)" class="pk p-4 rounded-3xl bg-white/5 border ${f?'border-emerald-400':'border-white/10'}"><div class="text-2xl font-black">${p.min} นาที</div><div class="${f?'text-emerald-400':'text-fuchsia-400'} font-bold">${f?'ฟรี':p.price+' ฿'}</div></button>` }).join(''); }
-function setPkg(i,el){ pkg={...S.packages[i]}; pkg.free=Number(pkg.price)===0; document.querySelectorAll('.pk').forEach(b=>b.style.borderColor=''); el.style.borderColor=pkg.free?'#34d399':'#e879f9'; sum.classList.remove('hidden'); btnPay.textContent=pkg.free?'ส่งฟรี':'ไปชำระเงิน'; sum.innerHTML=pkg.free?`ส่งฟรี รอสตาฟตรวจ`:`ราคา ${pkg.price} ฿`; }
+(async()=>{ S = await getSettings(); venue.textContent = S.venue; drawPkgs(); })();
+
+function go(n){ document.querySelectorAll('.st').forEach(e=>e.classList.toggle('hidden',+e.dataset.s!==n));
+  document.querySelectorAll('.pbar').forEach((b,i)=>b.className='pbar h-1 flex-1 rounded-full '+
+    (i<n?'bg-gradient-to-r from-fuchsia-500 to-cyan-500':'bg-white/10')); scrollTo(0,0); }
+
+async function pick(el){ const f=el.files[0]; if(!f) return;
+  blob = await fitPortrait(f);
+  prev.src = URL.createObjectURL(blob); prev.classList.remove('hidden'); ph.classList.add('hidden'); }
+
+function live(){}
+function n1(){ if(!blob) return alert('กรุณาอัปโหลดรูป');
+  if(!handle.value.trim()) return alert('กรุณากรอก username'); go(2); }
+
+function drawPkgs(){ pkgs.innerHTML = S.packages.map((p,i)=>`
+  <button onclick="setPkg(${i},this)" class="pk relative text-left p-4 rounded-3xl bg-white/5 border border-white/10">
+   ${p.tag?`<span class="absolute -top-2 right-3 text-[9px] px-2 py-0.5 rounded-full bg-fuchsia-500 font-black">${esc(p.tag)}</span>`:''}
+   <div class="text-3xl font-black leading-none">${p.min}<span class="text-[11px] font-normal text-slate-400"> นาที</span></div>
+   <div class="text-fuchsia-300 font-black text-lg mt-1.5">${p.price} ฿</div>
+   <div class="text-[10px] text-slate-500">≈ ${(p.price/p.min).toFixed(0)} ฿/นาที</div></button>`).join(''); }
+
+function setPkg(i,el){ pkg={...S.packages[i]};
+  document.querySelectorAll('.pk').forEach(b=>b.className='pk relative text-left p-4 rounded-3xl bg-white/5 border border-white/10');
+  el.className='pk relative text-left p-4 rounded-3xl bg-fuchsia-500/20 border border-fuchsia-400';
+  pkg.cents=Math.floor(Math.random()*89)+1; pkg.total=pkg.price+pkg.cents/100;
+  sum.classList.remove('hidden');
+  sum.innerHTML=`<div class="flex justify-between py-1"><span class="text-slate-400">เวลาขึ้นจอ</span><b>${pkg.min} นาที</b></div>
+   <div class="flex justify-between py-1"><span class="text-slate-400">ราคา</span><b>${pkg.price} ฿</b></div>
+   <div class="flex justify-between py-1"><span class="text-slate-400">รหัสอ้างอิง</span><b class="text-cyan-300 font-mono">.${String(pkg.cents).padStart(2,'0')}</b></div>
+   <div class="border-t border-white/10 my-2"></div>
+   <div class="flex justify-between items-center"><span class="font-bold">ยอดที่ต้องโอน</span><b class="text-2xl text-fuchsia-300">${money(pkg.total)} ฿</b></div>`; }
 
 async function n2(){
-  if(!pkg||!ok.checked) return alert('เลือกแพ็กเกจและยอมรับเงื่อนไข');
-  btnPay.disabled=true; btnPay.textContent='กำลังอัปโหลด...';
+  if(!pkg) return alert('กรุณาเลือกแพ็กเกจ');
+  if(!ok.checked) return alert('กรุณายอมรับเงื่อนไข');
+  btnPay.disabled=true; btnPay.innerHTML='<span class="spin">◌</span> กำลังอัปโหลด…';
   try{
-    const id = crypto.randomUUID(); const url = await upload('cards', `${id}.jpg`, blob);
-    const { data, error } = await sb.from('orders').insert({ id, handle: handle.value, platform: pf.value, message: msg.value, image_url: url, minutes: pkg.min, price: pkg.price, amount: pkg.free?0:pkg.price, status: pkg.free?'pending':'unpaid' }).select().single();
-    if(error) throw error; order = data;
-    if(pkg.free){ watch(); go(4); paint(order); } 
-    else{ 
-      go(3);
-      setTimeout(()=>{ QRCode.toCanvas(document.getElementById('qr'), ppPayload(S.promptpay, order.amount), {width:200}); amt.textContent=order.amount+' ฿'; watch(); }, 500);
+    const id = crypto.randomUUID();
+    url = await upload('cards', `${id}.jpg`, blob);
+    const { data, error } = await sb.from('orders').insert({
+      id, handle: handle.value.replace(/^@/,''), platform: pf.value, message: msg.value.trim(),
+      image_url: url, minutes: pkg.min, price: pkg.price, amount: pkg.total, status:'unpaid'
+    }).select().single();
+    if(error) throw error;
+    order = data;
+
+    /* ===== กัน QRCode พัง ไม่ให้ค้างทั้งระบบ ===== */
+    try{
+      QRCode.toCanvas(qr, ppPayload(S.promptpay, order.amount),
+        { width: Math.min(240, innerWidth-110), margin:1 });
+    }catch(err){
+      console.error('QR error:', err);
+      alert('สร้าง QR ไม่สำเร็จ กรุณารีเฟรชหน้าใหม่อีกครั้ง');
     }
-  }catch(e){ alert(e.message); btnPay.disabled=false; }
+    /* ========================================== */
+
+    amt.textContent = money(order.amount)+' ฿';
+    watch(); go(3);
+  }catch(e){ alert('เกิดข้อผิดพลาด: '+e.message); }
+  finally{ btnPay.disabled=false; btnPay.textContent='ไปชำระเงิน'; }
 }
+
+const saveQR=()=>{ const a=document.createElement('a'); a.download='promptpay.png'; a.href=qr.toDataURL(); a.click();
+  alert('บันทึกแล้ว → เปิดแอปธนาคาร → สแกนจากคลังรูป'); };
 
 async function slip(el){
-  slipMsg.textContent='กำลังตรวจสลิป...'; const ref = await readSlipQR(el.files[0]); if(!ref) return slipMsg.textContent='อ่าน QR ไม่พบ';
-  const su = await upload('slips', `${order.id}.jpg`, await fitPortrait(el.files[0])); await sb.from('orders').update({ slip_url: su, slip_ref: ref, status:'pending' }).eq('id', order.id);
-  go(4); paint({...order, status:'pending'});
+  const f = el.files[0]; if(!f) return;
+  slipMsg.innerHTML='<span class="spin">◌</span> กำลังตรวจสลิป…';
+  const ref = await readSlipQR(f);
+  if(!ref){ slipMsg.innerHTML='<span class="text-red-400">อ่าน QR ในสลิปไม่ได้ ลองถ่าย/แคปให้ชัดขึ้นครับ</span>'; return; }
+  const { data: dup } = await sb.from('orders').select('id').eq('slip_ref', ref).maybeSingle();
+  if(dup){ slipMsg.innerHTML='<span class="text-red-400">⛔ สลิปนี้ถูกใช้ไปแล้ว</span>'; return; }
+  try{
+    const su = await upload('slips', `${order.id}.jpg`, await fitPortrait(f));
+    const { error } = await sb.from('orders').update({ slip_url: su, slip_ref: ref, status:'pending' }).eq('id', order.id);
+    if(error) throw error;
+    go(4); paint({...order, status:'pending'});
+  }catch(e){ slipMsg.innerHTML='<span class="text-red-400">'+e.message+'</span>'; }
 }
 
-function watch(){ sb.channel('me').on('postgres_changes', {event:'UPDATE', schema:'public', table:'orders', filter:`id=eq.${order.id}`}, p => { order=p.new; if(['pending','live','rejected','done'].includes(order.status)){ go(4); paint(order); } }).subscribe(); }
-function paint(o){ status.innerHTML = `<div class="text-center p-6 bg-white/5 rounded-3xl"><p class="text-4xl">${o.status==='pending'?'🕓 รอตรวจ':o.status==='live'?'🔴 ขึ้นจออยู่':'⛔ จบแล้ว'}</p></div>`; }
+function watch(){
+  sb.channel('me').on('postgres_changes',
+    { event:'UPDATE', schema:'public', table:'orders', filter:`id=eq.${order.id}` },
+    p => { order = p.new; if(['pending','live','rejected','done'].includes(order.status)){ go(4); paint(order); } }
+  ).subscribe();
+}
+
+function paint(o){
+  const left = o.end_at ? Math.max(0, Math.ceil((new Date(o.end_at)-Date.now())/1000)) : 0;
+  const M = { pending:['🕓','รอสตาฟตรวจสอบ','text-amber-300','ปกติไม่เกิน 2 นาที'],
+              live:['🔴','การ์ดของคุณขึ้นจอแล้ว!','text-emerald-400',`เหลืออีก ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`],
+              rejected:['⛔','ถูกตีกลับโดยสตาฟ','text-red-400','ติดต่อเคาน์เตอร์เพื่อขอคืนเงิน'],
+              done:['✅','จบรอบแล้ว ขอบคุณครับ','text-slate-300','ส่งใบใหม่ได้เลย'] }[o.status];
+  status.innerHTML = `<div class="rounded-3xl bg-white/5 border border-white/10 p-6 text-center">
+    <div class="text-5xl">${M[0]}</div><p class="font-black text-lg mt-2 ${M[2]}">${M[1]}</p>
+    <p class="text-xs text-slate-400 mt-1">${M[3]}</p>
+    <div class="mt-5 text-left text-[11px] text-slate-400 bg-black/40 rounded-2xl p-3 space-y-1.5">
+      <div class="flex justify-between"><span>Order</span><span class="font-mono">#${o.id.slice(0,6)}</span></div>
+      <div class="flex justify-between"><span>ยอดชำระ</span><span class="font-mono">${money(o.amount)} ฿</span></div>
+      <div class="flex justify-between"><span>เวลาขึ้นจอ</span><span>${o.minutes} นาที</span></div>
+    </div></div>`;
+  if(o.status==='live') setTimeout(()=>paint(o),1000);
+}
+go(1);
 </script>
 </body></html>
