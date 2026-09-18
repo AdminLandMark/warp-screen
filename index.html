@@ -7,6 +7,7 @@
 <title>แจกวาร์ปขึ้นจอ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- โหลด QRCode ก่อน เพื่อให้พร้อมใช้งานทันที -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
@@ -137,7 +138,12 @@ async function n2(){
     }).select().single();
     if(error) throw error;
     order = data;
-    QRCode.toCanvas(qr, ppPayload(S.promptpay, order.amount), { width: Math.min(240, innerWidth-110), margin:1 });
+    
+    // เรียกใช้ QRCode ที่โหลดไว้ใน <head> แล้ว
+    if(typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(qr, ppPayload(S.promptpay, order.amount), { width: Math.min(240, innerWidth-110), margin:1 });
+    }
+    
     amt.textContent = money(order.amount)+' ฿';
     watch(); go(3);
   }catch(e){ alert('เกิดข้อผิดพลาด: '+e.message); }
