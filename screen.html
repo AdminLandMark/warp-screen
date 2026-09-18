@@ -3,58 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Screen</title>
+<title>Screen · Warp</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
- body{overflow:hidden;cursor:none}
- @keyframes fade{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
- .fade{animation:fade .6s ease}
+  html,body{height:100%;overflow:hidden;background:#000}
+  body{cursor:none}
+  @keyframes in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  .anim{animation:in .7s cubic-bezier(.2,.8,.2,1)}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .float{animation:float 4s ease-in-out infinite}
 </style>
 </head>
-<body class="bg-black text-white font-[system-ui] h-screen">
-<div id="stage" class="h-screen grid place-items-center"></div>
+<body class="text-white font-[system-ui]">
+
+<div id="bg" class="fixed inset-0 bg-center bg-cover scale-110 blur-3xl opacity-30 transition-all duration-1000"></div>
+<div class="fixed inset-0 bg-black/50"></div>
+
+<div id="stage" class="relative h-screen w-screen grid place-items-center p-[3vh]"></div>
+
+<div id="clock" class="fixed bottom-[2vh] right-[3vw] text-[2.2vh] font-black tabular-nums opacity-60"></div>
 
 <script src="config.js"></script><script src="app.js"></script>
 <script>
-let queue=[], idx=0;
+let queue = [], idx = 0, curId = null, S = null;
 
-async function load(){
-  const { data } = await sb.from('orders')
-    .select('*').eq('status','live')
-    .gt('end_at', new Date().toISOString())
-    .order('created_at',{ascending:true});
-  queue = data||[];
-  if(idx >= queue.length) idx = 0;
-  show();
+/* ---------- หน้าจอว่าง ---------- */
+function idle(){
+  if(curId === 'IDLE') return;
+  curId = 'IDLE';
+  bg.style.backgroundImage = 'none';
+  stage.innerHTML = `
+    <div class="anim text-center">
+      <div class="text-[16vh] float">🌃</div>
+      <p class="text-[7vh] font-black bg-gradient-to-r from-fuchsia-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
+        ${esc(S?.venue || 'NEON BAR')}</p>
+      <p class="text-[2.6vh] mt-[2vh] text-slate-300">สแกน QR ที่โต๊ะ · ส่งการ์ดขึ้นจอนี้ได้เลย</p>
+    </div>`;
 }
 
-function show(){
-  if(!queue.length){
-    stage.innerHTML = `<div class="text-center opacity-40">
-      <div class="text-7xl mb-4">🌃</div>
-      <p class="text-3xl font-black">NEON BAR</p>
-      <p class="text-lg mt-2">สแกน QR ที่โต๊ะเพื่อส่งการ์ดขึ้นจอ</p></div>`;
-    return;
-  }
+/* ---------- วาดการ์ด ---------- */
+function render(){
+  if(!queue.length) return idle();
   const o = queue[idx % queue.length];
-  const ic = { ig:'📸', fb:'💙', tt:'🎵' }[o.platform] || '✨';
+  if(o.id === curId) return;          // การ์ดเดิม ไม่ต้องวาดซ้ำ
+  curId = o.id;
+
+  bg.style.backgroundImage = `url(${o.image_url})`;
+  const ic = (typeof ICON !== 'undefined' && ICON[o.platform]) || '✨';
+
   stage.innerHTML = `
-    <div class="fade flex items-center gap-12 px-12">
-      <img src="${o.image_url}" class="h-[80vh] rounded-3xl object-cover shadow-2xl shadow-fuchsia-500/30">
-      <div class="max-w-lg">
-        <p class="text-6xl font-black bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
+    <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
+      <img src="${o.image_url}"
+           class="h-[52vh] landscape:h-[84vh] aspect-[3/4] object-cover rounded-[3vh]
+                  shadow-[0_0_8vh_rgba(217,70,239,.45)] ring-2 ring-white/20">
+      <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
+        <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
+                  bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
           ${ic} @${esc(o.handle)}</p>
-        <p class="text-3xl mt-6 text-slate-200 leading-snug">${esc(o.message||'')}</p>
+        <p class="text-[3.4vh] mt-[2.5vh] text-slate-100 leading-snug">${esc(o.message || '')}</p>
+        <p id="cd" class="text-[2vh] mt-[3vh] text-slate-400 tabular-nums"></p>
       </div>
     </div>`;
 }
 
-setInterval(()=>{ idx++; show(); }, 8000);
+/* ---------- นับถอยหลัง (ไม่วาดใหม่ทั้งจอ) ---------- */
+setInterval(()=>{
+  const now = new Date();
+  clock.textContent = now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  const el = document.getElementById('cd');
+  if(!el || !queue.length) return;
+  const o = queue[idx % queue.length];
+  if(!o?.end_at) return;
+  const s = Math.max(0, Math.ceil((new Date(o.end_at) - now)/1000));
+  el.textContent = `⏱ เหลือ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}, 1000);
+
+/* ---------- ดึงคิว + ปิดการ์ดหมดเวลา ---------- */
+async function load(){
+  const now = new Date().toISOString();
+
+  // ปิดการ์ดที่หมดเวลาแล้ว
+  await sb.from('orders').update({ status:'done' })
+    .eq('status','live').lt('end_at', now);
+
+  const { data, error } = await sb.from('orders')
+    .select('*').eq('status','live').gt('end_at', now)
+    .order('created_at', { ascending:true });
+
+  if(error){ console.error(error); return; }
+  queue = data || [];
+
+  if(!queue.length){ idx = 0; return idle(); }
+  if(!queue.some(o => o.id === curId)){ idx = 0; render(); }  // การ์ดที่โชว์อยู่หายไป → เปลี่ยนทันที
+}
+
+/* ---------- สลับการ์ดทุก 8 วิ ---------- */
+setInterval(()=>{ if(queue.length > 1){ idx++; render(); } }, 8000);
 setInterval(load, 10000);
 
-sb.channel('screen').on('postgres_changes',
-  { event:'*', schema:'public', table:'orders' }, load).subscribe();
-load();
+sb.channel('screen')
+  .on('postgres_changes', { event:'*', schema:'public', table:'orders' }, load)
+  .subscribe();
+
+/* ---------- คลิกเพื่อเต็มจอ ---------- */
+addEventListener('click', ()=>{
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+});
+
+(async()=>{ S = await getSettings(); idle(); load(); })();
 </script>
 </body></html>
