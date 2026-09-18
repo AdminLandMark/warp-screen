@@ -3,31 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#020617">
 <title>แจกวาร์ปขึ้นจอ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- ===== QRCode: ตัวหลัก + ตัวสำรอง ===== -->
 <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.js"></script>
 <script>if(typeof QRCode==='undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>');</script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<style>input,select{font-size:16px!important} @keyframes spin{to{transform:rotate(360deg)}} .spin{display:inline-block;animation:spin 1s linear infinite}</style>
+
+<style>
+ input,select{font-size:16px!important}
+ @keyframes spin{to{transform:rotate(360deg)}} .spin{display:inline-block;animation:spin 1s linear infinite}
+</style>
 </head>
 <body class="bg-slate-950 text-white font-[system-ui] antialiased">
 <main class="max-w-[26rem] mx-auto px-4 pb-16" style="padding-top:calc(20px + env(safe-area-inset-top))">
-  <header class="flex items-center gap-3"><div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-cyan-500 grid place-items-center text-2xl">🌃</div><div><h1 id="venue" class="text-lg font-black leading-tight">…</h1><p class="text-[11px] text-slate-400">แจกวาร์ปขึ้นจอ LED หน้าเวที</p></div></header>
-  <div class="flex gap-1.5 mt-5 mb-6"><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div></div>
+
+  <header class="flex items-center gap-3">
+    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-cyan-500 grid place-items-center text-2xl">🌃</div>
+    <div><h1 id="venue" class="text-lg font-black leading-tight">…</h1>
+      <p class="text-[11px] text-slate-400">แจกวาร์ปขึ้นจอ LED หน้าเวที</p></div>
+  </header>
+
+  <div class="flex gap-1.5 mt-5 mb-6">
+    <div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div>
+    <div class="pbar h-1 flex-1 rounded-full"></div><div class="pbar h-1 flex-1 rounded-full"></div>
+  </div>
   
+  <!-- STEP 1 -->
   <section class="st" data-s="1">
     <h2 class="font-black text-lg">สร้างการ์ดของคุณ</h2>
+    <p class="text-[11px] text-slate-500 mb-4">รูปแนวตั้งสวยที่สุด</p>
     <label class="block relative rounded-3xl overflow-hidden border-2 border-dashed border-white/20 bg-white/[.03] aspect-[3/4] cursor-pointer mt-4">
       <input type="file" accept="image/*" class="hidden" onchange="pick(this)">
-      <img id="prev" class="absolute inset-0 w-full h-full object-cover hidden"><div id="ph" class="absolute inset-0 grid place-items-center text-center px-6"><div><div class="text-4xl mb-2">📷</div><p class="text-sm font-semibold text-slate-300">แตะเพื่ออัปโหลดรูป</p></div></div>
+      <img id="prev" class="absolute inset-0 w-full h-full object-cover hidden">
+      <div id="ph" class="absolute inset-0 grid place-items-center text-center px-6">
+        <div><div class="text-4xl mb-2">📷</div>
+        <p class="text-sm font-semibold text-slate-300">แตะเพื่ออัปโหลดรูป</p></div></div>
     </label>
-    <div class="flex gap-2 mt-4"><select id="pf" class="bg-white/5 border border-white/10 rounded-2xl px-3 h-14 outline-none"><option value="ig">📸</option><option value="fb">💙</option><option value="tt">🎵</option></select><input id="handle" maxlength="30" placeholder="username" class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none"></div>
+    <div class="flex gap-2 mt-4">
+      <select id="pf" class="bg-white/5 border border-white/10 rounded-2xl px-3 h-14 outline-none"><option value="ig">📸</option><option value="fb">💙</option><option value="tt">🎵</option></select>
+      <input id="handle" maxlength="30" placeholder="username" class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none">
+    </div>
     <input id="msg" maxlength="40" placeholder="ข้อความสั้นๆ" class="w-full mt-2 bg-white/5 border border-white/10 rounded-2xl px-4 h-14 outline-none">
     <button onclick="n1()" class="w-full mt-6 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ถัดไป</button>
   </section>
 
+  <!-- STEP 2 -->
   <section class="st hidden" data-s="2">
     <h2 class="font-black text-lg mb-4">เลือกแพ็กเกจ</h2>
     <div id="pkgs" class="grid grid-cols-2 gap-2.5"></div>
@@ -36,26 +59,35 @@
     <div class="flex gap-2 mt-5"><button onclick="go(1)" class="w-16 h-14 rounded-2xl bg-white/10 font-bold">←</button><button id="btnPay" onclick="n2()" class="flex-1 h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">ไปชำระเงิน</button></div>
   </section>
 
+  <!-- STEP 3 -->
   <section class="st hidden" data-s="3">
     <h2 class="font-black text-lg">สแกนจ่าย</h2>
     <div class="mt-4 rounded-3xl bg-white p-5 text-center"><canvas id="qr" class="mx-auto"></canvas><p id="amt" class="text-black font-black text-3xl mt-2"></p></div>
     <div class="mt-6 rounded-3xl border border-white/10 p-4"><p class="font-bold text-sm">แนบสลิป</p><label class="flex items-center justify-center w-full h-14 rounded-2xl bg-emerald-500 font-black mt-3 cursor-pointer">📤 อัปโหลดสลิป <input type="file" accept="image/*" class="hidden" onchange="slip(this)"></label><p id="slipMsg" class="text-[11px] mt-2 text-center text-slate-400"></p></div>
   </section>
 
+  <!-- STEP 4 -->
   <section class="st hidden" data-s="4"><div id="status"></div><button onclick="location.reload()" class="w-full mt-4 h-14 rounded-2xl bg-white/10 font-bold">ส่งใหม่</button></section>
 </main>
+
 <script src="config.js"></script><script src="app.js"></script>
 <script>
-const FREE_COOLDOWN_MIN = 60; let S, blob, pkg, order;
+const FREE_COOLDOWN_MIN = 60; 
+let S, blob=null, pkg=null, order=null;
+
 (async()=>{ S = await getSettings(); venue.textContent = S.venue; drawPkgs(); })();
+
 function go(n){ document.querySelectorAll('.st').forEach(e=>e.classList.toggle('hidden',+e.dataset.s!==n)); scrollTo(0,0); }
 async function pick(el){ blob = await fitPortrait(el.files[0]); prev.src = URL.createObjectURL(blob); prev.classList.remove('hidden'); ph.classList.add('hidden'); }
 function n1(){ if(!blob||!handle.value) return alert('กรุณาใส่ข้อมูลให้ครบ'); go(2); }
+
 function drawPkgs(){ pkgs.innerHTML = S.packages.map((p,i)=>{ const free = Number(p.price)===0; return `<button onclick="setPkg(${i},this)" class="pk relative p-4 rounded-3xl bg-white/5 border ${free?'border-emerald-400':'border-white/10'}"><div class="text-3xl font-black">${p.min}<span class="text-[10px] font-normal"> นาที</span></div><div class="${free?'text-emerald-300':'text-fuchsia-300'} font-black text-lg">${free?'ฟรี':p.price+' ฿'}</div></button>` }).join(''); }
 function setPkg(i,el){ pkg={...S.packages[i]}; pkg.free=Number(pkg.price)===0; document.querySelectorAll('.pk').forEach(b=>b.style.borderColor=''); el.style.borderColor=pkg.free?'#34d399':'#e879f9'; sum.classList.remove('hidden'); btnPay.textContent=pkg.free?'ส่งฟรี':'ไปชำระเงิน'; sum.innerHTML=pkg.free?`ส่งฟรี รอสตาฟตรวจ`:`ราคา ${pkg.price} ฿`; }
+
 async function n2(){
   if(!pkg||!ok.checked) return alert('เลือกแพ็กเกจและยอมรับเงื่อนไข');
   if(pkg.free && (Date.now()-(+localStorage.getItem('freeAt')||0) < FREE_COOLDOWN_MIN*60000)) return alert('ส่งฟรีได้ 1 ใบ ต่อชั่วโมงครับ');
+  
   btnPay.disabled=true; btnPay.textContent='กำลังอัปโหลด...';
   try{
     const id = crypto.randomUUID(); const url = await upload('cards', `${id}.jpg`, blob);
@@ -65,8 +97,17 @@ async function n2(){
     else{ QRCode.toCanvas(qr, ppPayload(S.promptpay, order.amount), {width:200}); amt.textContent=order.amount+' ฿'; watch(); go(3); }
   }catch(e){ alert(e.message); btnPay.disabled=false; }
 }
-async function slip(el){ slipMsg.textContent='กำลังตรวจสลิป...'; const ref = await readSlipQR(el.files[0]); if(!ref) return slipMsg.textContent='อ่าน QR ไม่พบ'; const su = await upload('slips', `${order.id}.jpg`, await fitPortrait(el.files[0])); await sb.from('orders').update({ slip_url: su, slip_ref: ref, status:'pending' }).eq('id', order.id); go(4); }
+
+async function slip(el){
+  slipMsg.textContent='กำลังตรวจสลิป...'; const ref = await readSlipQR(el.files[0]); if(!ref) return slipMsg.textContent='อ่าน QR ไม่พบ'; 
+  const su = await upload('slips', `${order.id}.jpg`, await fitPortrait(el.files[0])); 
+  await sb.from('orders').update({ slip_url: su, slip_ref: ref, status:'pending' }).eq('id', order.id); 
+  go(4); paint({...order, status:'pending'});
+}
+
 function watch(){ sb.channel('me').on('postgres_changes', {event:'UPDATE', schema:'public', table:'orders', filter:`id=eq.${order.id}`}, p => { order=p.new; if(['pending','live','rejected','done'].includes(order.status)){ go(4); paint(order); } }).subscribe(); }
 function paint(o){ status.innerHTML = `<div class="text-center p-6 bg-white/5 rounded-3xl"><p class="text-4xl">${o.status==='pending'?'🕓 รอตรวจ':o.status==='live'?'🔴 ขึ้นจออยู่':'⛔ จบแล้ว'}</p></div>`; }
+go(1);
 </script>
-</body></html>
+</body>
+</html>
