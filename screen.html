@@ -48,6 +48,12 @@
 <script src="config.js"></script><script src="app.js"></script>
 <script>
 let queue = [], idx = 0, curId = null, S = null;
+  /*ทำ icon */
+  function logoUrl(p){
+  const map = { ig:'instagram/E4405F', fb:'facebook/1877F2', tt:'tiktok/ffffff', line:'line/06C755' };
+  return `https://cdn.simpleicons.org/${map[p] || 'instagram/E4405F'}`;
+}
+
 
 /* ===== ลิงก์หน้าลูกค้า ===== */
 const SITE = location.origin + '/';   // https://warp-screen.vercel.app/
@@ -88,9 +94,8 @@ function render(){
   const o = queue[idx % queue.length];
   if(o.id === curId) return;
   curId = o.id;
-
+/* ---------- แก้ icon ---------- */
   bg.style.backgroundImage = `url(${o.image_url})`;
-  const ic = (typeof ICON !== 'undefined' && ICON[o.platform]) || '✨';
 
   stage.innerHTML = `
     <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
@@ -98,14 +103,17 @@ function render(){
            class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh]
                   ring-2 ring-white/20">
       <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
-        <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
-                  bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
-          ${ic} @${esc(o.handle)}</p>
+        <div class="flex items-center justify-center landscape:justify-start gap-[1.8vh]">
+          <img src="${logoUrl(o.platform)}" class="w-[6vh] h-[6vh] shrink-0" alt="">
+          <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
+                    bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
+            @${esc(o.handle)}</p>
+        </div>
         <p class="text-[3.4vh] mt-[2.5vh] text-slate-100 leading-snug">${esc(o.message || '')}</p>
         <p id="cd" class="text-[2vh] mt-[3vh] text-slate-400 tabular-nums"></p>
       </div>
     </div>`;
-
+  
   qrCorner.classList.remove('hidden');
   makeQR(qrSmall, Math.round(innerHeight * 0.11));
 }
