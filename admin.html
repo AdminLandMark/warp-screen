@@ -112,5 +112,11 @@ async function load(){
     `<button onclick="kill('${o.id}')" class="flex-1 h-10 rounded-xl bg-red-500/80 font-black text-[11px]">ลบออกจากจอ</button>`)).join('')
      || '<p class="col-span-full text-slate-600 text-xs py-4">จอว่าง</p>';
 }
+  
+function logoUrl(p){
+  const map = { ig:'instagram/E4405F', fb:'facebook/1877F2', tt:'tiktok/ffffff', line:'line/06C755' };
+  return `https://cdn.simpleicons.org/${map[p] || 'instagram/E4405F'}`;
+}
+
 </script>
 </body></html>
