@@ -94,17 +94,20 @@ function render(){
   const o = queue[idx % queue.length];
   if(o.id === curId) return;
   curId = o.id;
-/* ---------- แก้ icon ---------- */
+
   bg.style.backgroundImage = `url(${o.image_url})`;
+  
+  // แปลง platform เป็น URL โลโก้จริง
+  const map = { ig:'instagram/E4405F', fb:'facebook/1877F2', tt:'tiktok/ffffff', line:'line/06C755' };
+  const logoSrc = `https://cdn.simpleicons.org/${map[o.platform] || 'instagram/E4405F'}`;
 
   stage.innerHTML = `
     <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
       <img src="${o.image_url}"
-           class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh]
-                  ring-2 ring-white/20">
+           class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh] ring-2 ring-white/20">
       <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
-        <div class="flex items-center justify-center landscape:justify-start gap-[1.8vh]">
-          <img src="${logoUrl(o.platform)}" class="w-[6vh] h-[6vh] shrink-0" alt="">
+        <div class="flex items-center justify-center landscape:justify-start gap-[1.5vh]">
+          <img src="${logoSrc}" class="w-[5vh] h-[5vh] invert" alt="">
           <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
                     bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
             @${esc(o.handle)}</p>
@@ -113,7 +116,7 @@ function render(){
         <p id="cd" class="text-[2vh] mt-[3vh] text-slate-400 tabular-nums"></p>
       </div>
     </div>`;
-  
+
   qrCorner.classList.remove('hidden');
   makeQR(qrSmall, Math.round(innerHeight * 0.11));
 }
