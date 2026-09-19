@@ -34,7 +34,7 @@
 <div id="stage" class="relative h-screen w-screen grid place-items-center p-[3vh]"></div>
 
 <!-- QR มุมซ้ายล่าง (โชว์เฉพาะตอนมีการ์ด) -->
-<div id="qrCorner" class="hidden fixed bottom-[2.5vh] left-[2.5vw] z-20 flex items-center gap-[1.5vh]
+<div id="qrCorner" class="hidden fixed top-[2.5vh] right-[2.5vw] z-20 flex items-center gap-[1.5vh]
      bg-black/60 backdrop-blur rounded-[2vh] p-[1.5vh] ring-1 ring-white/20">
   <canvas id="qrSmall" class="rounded-[1vh] bg-white p-[.6vh]"></canvas>
   <div class="pr-[.8vh]">
@@ -96,7 +96,7 @@ function render(){
     <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
       <img src="${o.image_url}"
            class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh]
-                  shadow-[0_0_8vh_rgba(217,70,239,.45)] ring-2 ring-white/20">
+                  ring-2 ring-white/20">
       <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
         <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
                   bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
