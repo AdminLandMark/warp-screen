@@ -7,7 +7,6 @@
 <title>แจกวาร์ปขึ้นจอ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
  input,select{font-size:16px!important}
@@ -69,7 +68,7 @@
   <section class="st hidden" data-s="3">
     <h2 class="font-black text-lg">สแกนจ่ายผ่าน PromptPay</h2>
     <div class="mt-4 rounded-3xl bg-white p-5 text-center">
-      <img id="qr" class="mx-auto max-w-full w-[220px] h-[220px] bg-slate-100 rounded-xl">
+      <img id="qr" class="mx-auto max-w-full w-[220px] h-[220px] bg-slate-100 rounded-xl" alt="QR PromptPay">
       <p id="amt" class="text-black font-black text-3xl mt-2 tabular-nums"></p>
       <p class="text-slate-500 text-[11px] px-4">โอนให้ตรงทุกสตางค์ · เลข 2 หลักท้ายคือรหัสอ้างอิงของคุณ</p>
     </div>
@@ -160,15 +159,12 @@ async function n2(){
       return;
     }
 
+    /* ===== สร้าง QR ผ่าน API โดยตรง ไม่พึ่ง JS Library ===== */
     const payload = ppPayload(S.promptpay, order.amount);
     console.log('QR payload:', payload);
-    try{
-      const dataUrl = await QRCode.toDataURL(payload, { width: 260, margin: 1 });
-      document.getElementById('qr').src = dataUrl;
-    }catch(err){
-      console.error('QR generate error:', err);
-      alert('สร้าง QR ไม่สำเร็จ: '+err.message);
-    }
+    const encoded = encodeURIComponent(payload);
+    document.getElementById('qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encoded}`;
+    /* ======================================================= */
 
     amt.textContent = money(order.amount)+' ฿';
     watch(); go(3);
@@ -176,12 +172,18 @@ async function n2(){
   finally{ btnPay.disabled=false; btnPay.textContent = pkg?.free?'ส่งการ์ดฟรี':'ไปชำระเงิน'; }
 }
 
-const saveQR=()=>{
-  const a=document.createElement('a');
-  a.download='promptpay.png';
-  a.href=document.getElementById('qr').src;
-  a.click();
-  alert('บันทึกแล้ว → เปิดแอปธนาคาร → สแกนจากคลังรูป');
+const saveQR = async () => {
+  try{
+    const res = await fetch(document.getElementById('qr').src);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'promptpay.png';
+    a.click();
+    alert('บันทึกแล้ว → เปิดแอปธนาคาร → สแกนจากคลังรูป');
+  }catch(e){
+    alert('บันทึกไม่สำเร็จ ลองแคปหน้าจอแทนได้ครับ');
+  }
 };
 
 async function slip(el){
