@@ -6,151 +6,57 @@
 <title>Screen · Warp</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- QRCode: ตัวหลัก + ตัวสำรอง -->
 <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.js"></script>
-<script>
-  if (typeof QRCode === 'undefined') {
-    document.write('<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>');
-  }
-</script>
-
 <style>
   html,body{height:100%;overflow:hidden;background:#000}
   body{cursor:none}
-  @keyframes in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  @keyframes in{from{opacity:0;transform:scale(.97)}}
   .anim{animation:in .7s cubic-bezier(.2,.8,.2,1)}
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-  .float{animation:float 4s ease-in-out infinite}
-  @keyframes pulse2{0%,100%{box-shadow:0 0 0 0 rgba(217,70,239,.5)}50%{box-shadow:0 0 0 2vh rgba(217,70,239,0)}}
-  .pulse2{animation:pulse2 2.5s infinite}
 </style>
 </head>
 <body class="text-white font-[system-ui]">
-
 <div id="bg" class="fixed inset-0 bg-center bg-cover scale-110 blur-3xl opacity-30 transition-all duration-1000"></div>
 <div class="fixed inset-0 bg-black/50"></div>
-
 <div id="stage" class="relative h-screen w-screen grid place-items-center p-[3vh]"></div>
-
-<!-- QR มุมซ้ายล่าง (โชว์เฉพาะตอนมีการ์ด) -->
-<div id="qrCorner" class="hidden fixed top-[2.5vh] right-[2.5vw] z-20 flex items-center gap-[1.5vh]
-     bg-black/60 backdrop-blur rounded-[2vh] p-[1.5vh] ring-1 ring-white/20">
+<div id="qrCorner" class="hidden fixed top-[2.5vh] right-[2.5vw] z-20 flex items-center gap-[1.5vh] bg-black/60 backdrop-blur rounded-[2vh] p-[1.5vh] ring-1 ring-white/20">
   <canvas id="qrSmall" class="rounded-[1vh] bg-white p-[.6vh]"></canvas>
-  <div class="pr-[.8vh]">
-    <p class="text-[1.9vh] font-black leading-tight">สแกนส่งการ์ด</p>
-    <p class="text-[1.4vh] text-slate-400 leading-tight">ขึ้นจอนี้ได้เลย</p>
-  </div>
 </div>
-
-<div id="clock" class="fixed bottom-[2vh] right-[3vw] text-[2.2vh] font-black tabular-nums opacity-60"></div>
-
-<script src="config.js"></script><script src="app.js"></script>
+<script src="config.js"></script>
 <script>
-let queue = [], idx = 0, curId = null, S = null;
+  // 1. กำหนดค่า ICON ให้เป็น URL โลโก้สีขาว (แก้สีเพี้ยน)
+  const ICON = {
+    ig: 'https://cdn.simpleicons.org/instagram/ffffff',
+    fb: 'https://cdn.simpleicons.org/facebook/ffffff',
+    tt: 'https://cdn.simpleicons.org/tiktok/ffffff',
+    line: 'https://cdn.simpleicons.org/line/ffffff'
+  };
+</script>
+<script src="app.js"></script>
+<script>
+  // 2. ปรับฟังก์ชัน render ให้ดึงจาก ICON ที่เรากำหนดไว้
+  function render(){
+    if(!queue.length) return idle();
+    const o = queue[idx % queue.length];
+    if(o.id === curId) return;
+    curId = o.id;
+    bg.style.backgroundImage = `url(${o.image_url})`;
+    
+    // ดึง URL จาก object ICON ที่เราแก้ไว้ข้างบน
+    const iconUrl = ICON[o.platform] || '✨';
 
-/* ===== ลิงก์หน้าลูกค้า ===== */
-const SITE = location.origin + '/';   // https://warp-screen.vercel.app/
-
-function makeQR(canvas, size){
-  if(typeof QRCode === 'undefined') return;
-  QRCode.toCanvas(canvas, SITE, {
-    width: size, margin: 1,
-    color: { dark:'#000000', light:'#ffffff' }
-  }, e => e && console.error('QR:', e));
-}
-
-/* ---------- หน้าจอว่าง : QR ใหญ่ ---------- */
-function idle(){
-  if(curId === 'IDLE') return;
-  curId = 'IDLE';
-  bg.style.backgroundImage = 'none';
-  qrCorner.classList.add('hidden');
-
-  stage.innerHTML = `
-    <div class="anim text-center">
-      <div class="text-[11vh] float">🌃</div>
-      <p class="text-[6.5vh] font-black bg-gradient-to-r from-fuchsia-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
-        ${esc(S?.venue || 'NEON BAR')}</p>
-      <div class="mt-[3vh] inline-block bg-white rounded-[2.5vh] p-[2vh] pulse2">
-        <canvas id="qrBig"></canvas>
-      </div>
-      <p class="text-[3.4vh] mt-[2.5vh] font-black">📱 สแกนเปิดวาร์ปขึ้นจอ</p>
-      <p class="text-[2vh] mt-[.8vh] text-slate-400">พบเพื่อนใหม่ 🥂หมดเเก้ว</p>
-    </div>`;
-
-  makeQR(document.getElementById('qrBig'), Math.round(innerHeight * 0.28));
-}
-
-/* ---------- วาดการ์ด ---------- */
-function render(){
-  if(!queue.length) return idle();
-  const o = queue[idx % queue.length];
-  if(o.id === curId) return;
-  curId = o.id;
-
-  bg.style.backgroundImage = `url(${o.image_url})`;
-  const ic = (typeof ICON !== 'undefined' && ICON[o.platform]) || '✨';
-
-  stage.innerHTML = `
-    <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
-      <img src="${o.image_url}"
-           class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh]
-                  ring-2 ring-white/20">
-      <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
-        <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
-                  bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
-          ${ic} @${esc(o.handle)}</p>
-        <p class="text-[3.4vh] mt-[2.5vh] text-slate-100 leading-snug">${esc(o.message || '')}</p>
-        <p id="cd" class="text-[2vh] mt-[3vh] text-slate-400 tabular-nums"></p>
-      </div>
-    </div>`;
-
-  qrCorner.classList.remove('hidden');
-  makeQR(qrSmall, Math.round(innerHeight * 0.11));
-}
-
-/* ---------- นาฬิกา + นับถอยหลัง ---------- */
-setInterval(()=>{
-  clock.textContent = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
-  const el = document.getElementById('cd');
-  if(!el || !queue.length) return;
-  const o = queue[idx % queue.length];
-  if(!o?.end_at) return;
-  const s = Math.max(0, Math.ceil((new Date(o.end_at) - Date.now())/1000));
-  el.textContent = `⏱ เหลือ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-}, 1000);
-
-/* ---------- ดึงคิว + ปิดการ์ดหมดเวลา ---------- */
-async function load(){
-  const now = new Date().toISOString();
-
-  await sb.from('orders').update({ status:'done' })
-    .eq('status','live').lt('end_at', now);
-
-  const { data, error } = await sb.from('orders')
-    .select('*').eq('status','live').gt('end_at', now)
-    .order('created_at', { ascending:true });
-
-  if(error){ console.error(error); return; }
-  queue = data || [];
-
-  if(!queue.length){ idx = 0; return idle(); }
-  if(!queue.some(o => o.id === curId)){ idx = 0; render(); }
-}
-
-setInterval(()=>{ if(queue.length > 1){ idx++; render(); } }, 8000);
-setInterval(load, 10000);
-
-sb.channel('screen')
-  .on('postgres_changes', { event:'*', schema:'public', table:'orders' }, load)
-  .subscribe();
-
-addEventListener('click', ()=>{
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-});
-addEventListener('resize', ()=>{ curId = null; queue.length ? render() : idle(); });
-
-(async()=>{ S = await getSettings(); idle(); load(); })();
+    stage.innerHTML = `
+      <div class="anim flex items-center justify-center gap-[4vh] w-full h-full">
+        <img src="${o.image_url}" class="h-[80vh] aspect-[3/4] object-cover rounded-[3vh] ring-2 ring-white/20">
+        <div class="text-left max-w-[35vw]">
+          <div class="flex items-center gap-[2vh]">
+            <img src="${iconUrl}" class="w-[6vh] h-[6vh]" alt="icon">
+            <p class="text-[7vh] font-black bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">@${esc(o.handle)}</p>
+          </div>
+          <p class="text-[3.4vh] mt-[2.5vh] text-slate-100">${esc(o.message || '')}</p>
+        </div>
+      </div>`;
+    qrCorner.classList.remove('hidden');
+    QRCode.toCanvas(qrSmall, location.origin+'/', { width: 100, margin: 1, color: { dark:'#000000', light:'#ffffff' } });
+  }
 </script>
 </body></html>
