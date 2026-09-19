@@ -46,7 +46,7 @@ function makeQR(canvas, size){
   QRCode.toCanvas(canvas, SITE, { width: size, margin: 1, color: { dark:'#000000', light:'#ffffff' } });
 }
 
-// ฟังก์ชันดึงโลโก้สีขาวเท่านั้น เพื่อกันสีเพี้ยน
+// ฟังก์ชันแปลง platform เป็น URL โลโก้
 function getLogo(p){
   const map = { ig:'instagram/ffffff', fb:'facebook/ffffff', tt:'tiktok/ffffff', line:'line/ffffff' };
   return `https://cdn.simpleicons.org/${map[p] || 'instagram/ffffff'}`;
