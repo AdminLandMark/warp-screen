@@ -98,7 +98,7 @@ async function load(){
   const card=(o,btn)=>`<div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
     <div class="relative aspect-[3/4]"><img src="${o.image_url}" onclick="zoom('${o.image_url}')" class="absolute inset-0 w-full h-full object-cover">
       <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[9px] font-black">${o.minutes} นาที</span></div>
-    <div class="p-2.5 text-[11px]"><b class="text-xs block truncate">${ICON[o.platform]} @${esc(o.handle)}</b>
+    <div class="p-2.5 text-[11px]"><b class="text-xs flex items-center gap-1 truncate"><img src="${logoUrl(o.platform)}" class="w-3.5 h-3.5 shrink-0" alt="">@${esc(o.handle)}</b>
       <p class="text-slate-400 truncate h-4">${esc(o.message)}</p>
       <p class="text-emerald-400">${money(o.amount)} ฿</p>
       ${o.slip_url?`<button onclick="zoom('${o.slip_url}')" class="mt-1 w-full py-1.5 rounded-lg bg-white/10 text-[10px]">🔍 ดูสลิป</button>`:''}
