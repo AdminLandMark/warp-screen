@@ -41,7 +41,7 @@
   body{
     height:100%;
     overflow:hidden;
-    background:#00000000;
+    background:transparent;
   }
 
   body{
@@ -337,6 +337,34 @@
 
     vertical-align:-.12em;
 
+  }
+
+
+  /* =====================================================
+     OBS TRANSPARENT BACKGROUND
+     - ไม่ใช้ Chroma Key สีดำ
+     - ให้ OBS รับค่า Alpha จาก Browser Source โดยตรง
+     - สีดำภายในรูปจะยังคงเป็นสีดำ ไม่ถูกลบ
+     ===================================================== */
+
+  html,
+  body,
+  #stage{
+    background:transparent !important;
+  }
+
+  /* ภาพพื้นหลังเบลอเป็นเพียง decoration
+     ปิดไว้เพื่อไม่ให้มันกลายเป็นพื้นหลังทึบใน OBS */
+  #bg{
+    opacity:0 !important;
+    background-image:none !important;
+    pointer-events:none !important;
+  }
+
+  /* Overlay เดิมทำให้ทั้งหน้ามีสีดำ 50%
+     จึงต้องโปร่งใสจริง */
+  body > .fixed.inset-0.bg-black\\/50{
+    display:none !important;
   }
 
 </style>
