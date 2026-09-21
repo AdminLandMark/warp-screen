@@ -2,185 +2,1619 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sriracha&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Sriracha&display=swap"
+  rel="stylesheet"
+>
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
 <title>Screen · Warp</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 
 <!-- QRCode: ตัวหลัก + ตัวสำรอง -->
 <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.js"></script>
+
 <script>
   if (typeof QRCode === 'undefined') {
-    document.write('<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>');
+    document.write(
+      '<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>'
+    );
   }
 </script>
 
+
 <style>
-  html,body{height:100%;overflow:hidden;background:#00000000}
-  body{cursor:none}
-  @keyframes in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-  .anim{animation:in .7s cubic-bezier(.2,.8,.2,1)}
-  .parent-container {
-    margin-top: -170px;
-}
 
-.tomm{
-  margin-top: 25px;
-}
+  html,
+  body{
+    height:100%;
+    overflow:hidden;
+    background:#00000000;
+  }
 
-.sriracha-regular {
-  font-family: "Sriracha", cursive;
-  font-weight: 400;
-  font-style: normal;
-}
+  body{
+    cursor:none;
+  }
 
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-  .float{animation:float 4s ease-in-out infinite}
-  /*@keyframes pulse2{0%,100%{box-shadow:0 0 0 0 rgba(217,70,239,.5)}50%{box-shadow:0 0 0 2vh rgba(217,70,239,0)}}*/
-  .pulse2{animation:pulse2 2.5s infinite}
+
+  @keyframes in{
+    from{
+      opacity:0;
+      transform:scale(.97);
+    }
+
+    to{
+      opacity:1;
+      transform:scale(1);
+    }
+  }
+
+
+  .anim{
+    animation:in .7s cubic-bezier(.2,.8,.2,1);
+  }
+
+
+  .parent-container{
+    margin-top:-170px;
+  }
+
+
+  .tomm{
+    margin-top:25px;
+  }
+
+
+  .sriracha-regular{
+    font-family:"Sriracha",cursive;
+    font-weight:400;
+    font-style:normal;
+  }
+
+
+  @keyframes float{
+
+    0%,100%{
+      transform:translateY(0);
+    }
+
+    50%{
+      transform:translateY(-10px);
+    }
+
+  }
+
+
+  .float{
+    animation:float 4s ease-in-out infinite;
+  }
+
+
+  /*@keyframes pulse2{
+    0%,100%{
+      box-shadow:0 0 0 0 rgba(217,70,239,.5)
+    }
+
+    50%{
+      box-shadow:0 0 0 2vh rgba(217,70,239,0)
+    }
+  }*/
+
+
+  .pulse2{
+    animation:pulse2 2.5s infinite;
+  }
+
+
+  /* =====================================================
+     สวิตช์ทดสอบการ์ด
+     ===================================================== */
+
+  #testSwitchPanel{
+
+    position:fixed;
+
+    left:20px;
+    top:20px;
+
+    z-index:9999;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:10px 14px;
+
+    background:rgba(0,0,0,.75);
+
+    backdrop-filter:blur(10px);
+
+    border:1px solid rgba(255,255,255,.18);
+
+    border-radius:14px;
+
+    color:#fff;
+
+    font-family:system-ui,sans-serif;
+
+    cursor:default;
+
+    transition:.25s ease;
+
+  }
+
+
+  #testSwitchPanel:hover{
+
+    background:rgba(0,0,0,.9);
+
+    border-color:rgba(255,255,255,.35);
+
+  }
+
+
+  #testSwitchLabel{
+
+    font-size:14px;
+
+    font-weight:700;
+
+    white-space:nowrap;
+
+  }
+
+
+  #testSwitchStatus{
+
+    font-size:11px;
+
+    color:#94a3b8;
+
+    white-space:nowrap;
+
+  }
+
+
+  .switch{
+
+    position:relative;
+
+    width:48px;
+
+    height:26px;
+
+    flex:none;
+
+  }
+
+
+  .switch input{
+
+    opacity:0;
+
+    width:0;
+
+    height:0;
+
+  }
+
+
+  .slider{
+
+    position:absolute;
+
+    inset:0;
+
+    background:#475569;
+
+    border-radius:999px;
+
+    cursor:pointer;
+
+    transition:.25s ease;
+
+  }
+
+
+  .slider:before{
+
+    content:"";
+
+    position:absolute;
+
+    width:20px;
+
+    height:20px;
+
+    left:3px;
+
+    top:3px;
+
+    background:#fff;
+
+    border-radius:50%;
+
+    transition:.25s ease;
+
+  }
+
+
+  .switch input:checked + .slider{
+
+    background:#22c55e;
+
+  }
+
+
+  .switch input:checked + .slider:before{
+
+    transform:translateX(22px);
+
+  }
+
+
+  #testBadge{
+
+    display:none;
+
+    position:fixed;
+
+    left:20px;
+
+    top:76px;
+
+    z-index:9998;
+
+    padding:7px 12px;
+
+    background:rgba(34,197,94,.9);
+
+    color:#fff;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:800;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.3);
+
+  }
+
+
+  #testBadge.show{
+
+    display:block;
+
+  }
+
+
+  /* ซ่อนสวิตช์เมื่อ Fullscreen */
+
+  :fullscreen #testSwitchPanel,
+  :-webkit-full-screen #testSwitchPanel{
+
+    display:none;
+
+  }
+
+
+  :fullscreen #testBadge,
+  :-webkit-full-screen #testBadge{
+
+    display:none !important;
+
+  }
+
+
+  /* =====================================================
+     PLATFORM ICON
+     ===================================================== */
+
+  .platform-icon{
+
+    width:1em;
+
+    height:1em;
+
+    object-fit:contain;
+
+    display:inline-block;
+
+    vertical-align:-.12em;
+
+  }
+
 </style>
+
 </head>
+
+
 <body class="text-white font-[system-ui]">
 
-<div id="bg" class="fixed inset-0 bg-center bg-cover scale-110 blur-3xl opacity-30 transition-all duration-1000"></div>
-<div class="fixed inset-0 bg-black/50"></div>
 
-<div id="stage" class="relative h-screen w-screen grid place-items-center p-[3vh]"></div>
-
-<!-- QR มุมซ้ายล่าง (โชว์เฉพาะตอนมีการ์ด) -->
-<div id="qrCorner" class="hidden fixed top-[2.5vh] right-[2.5vw] z-20 flex items-center gap-[1.5vh]
-     bg-black/60 backdrop-blur rounded-[2vh] p-[1.5vh] ring-1 ring-white/20">
-  <canvas id="qrSmall" class="rounded-[1vh] bg-white p-[.6vh]"></canvas>
-  <div class="pr-[.8vh]">
-    <p class="text-[1.9vh] font-black leading-tight">สแกนส่งการ์ด</p>
-    <p class="text-[1.4vh] text-slate-400 leading-tight">ขึ้นจอนี้ได้เลย</p>
-  </div>
+<div
+  id="bg"
+  class="fixed inset-0
+         bg-center bg-cover
+         scale-110 blur-3xl
+         opacity-30
+         transition-all duration-1000">
 </div>
 
-<div id="clock" class="fixed bottom-[2vh] right-[3vw] text-[2.2vh] font-black tabular-nums opacity-60"></div>
 
-<script src="config.js"></script><script src="app.js"></script>
+<div class="fixed inset-0 bg-black/50"></div>
+
+
+<div
+  id="stage"
+  class="relative h-screen w-screen
+         grid place-items-center
+         p-[3vh]">
+</div>
+
+
+<!-- =====================================================
+     สวิตช์ทดสอบการ์ด
+     ===================================================== -->
+
+<!--<div id="testSwitchPanel">
+
+  <div>
+
+    <div id="testSwitchLabel">
+      🧪 ทดสอบการ์ด
+    </div>
+
+    <div id="testSwitchStatus">
+      ปิดอยู่
+    </div>
+
+  </div>
+
+
+  <label class="switch">
+
+    <input
+      type="checkbox"
+      id="testSwitch"
+      onchange="toggleTestCard(this.checked)"
+    >
+
+    <span class="slider"></span>
+
+  </label>
+
+</div>
+
+
+<div id="testBadge">
+  🧪 TEST CARD
+</div>
+-->
+
+<!-- =====================================================
+     QR มุมขวาบน
+     ===================================================== -->
+
+<div
+  id="qrCorner"
+  class="hidden fixed
+         top-[2.5vh]
+         right-[2.5vw]
+         z-20
+         flex items-center
+         gap-[1.5vh]
+         bg-black/60
+         backdrop-blur
+         rounded-[2vh]
+         p-[1.5vh]
+         ring-1 ring-white/20"
+>
+
+  <canvas
+    id="qrSmall"
+    class="rounded-[1vh]
+           bg-white
+           p-[.6vh]">
+  </canvas>
+
+
+  <div class="pr-[.8vh]">
+
+    <p
+      class="text-[1.9vh]
+             font-black
+             leading-tight"
+    >
+      สแกนส่งการ์ด
+    </p>
+
+    <p
+      class="text-[1.4vh]
+             text-slate-400
+             leading-tight"
+    >
+      ขึ้นจอนี้ได้เลย
+    </p>
+
+  </div>
+
+</div>
+
+
+<div
+  id="clock"
+  class="fixed
+         bottom-[2vh]
+         right-[3vw]
+         text-[2.2vh]
+         font-black
+         tabular-nums
+         opacity-60">
+</div>
+
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+
 <script>
-let queue = [], idx = 0, curId = null, S = null;
 
-/* ===== ลิงก์หน้าลูกค้า ===== */
-const SITE = location.origin + '/';   // https://warp-screen.vercel.app/
+
+/* =========================================================
+   ตัวแปรเดิม
+   ========================================================= */
+
+let queue = [],
+    idx = 0,
+    curId = null,
+    S = null;
+
+
+/* =========================================================
+   โหมดทดสอบ
+   ========================================================= */
+
+let TEST_MODE = false;
+
+
+/* =========================================================
+   ลิงก์หน้าลูกค้า
+   ========================================================= */
+
+const SITE =
+  location.origin + '/';
+
+
+/* =========================================================
+   PLATFORM
+   =========================================================
+
+   รองรับทั้งค่าใหม่จาก index.html
+
+   instagram
+   facebook
+   tiktok
+   line
+
+   และค่าเก่าที่อาจมีอยู่ใน Supabase
+
+   ig
+   fb
+   tt
+   ========================================================= */
+
+const PLATFORM_INFO = {
+
+  instagram: {
+    name:'Instagram',
+    icon:'https://cdn.simpleicons.org/instagram/E4405F'
+  },
+
+  ig: {
+    name:'Instagram',
+    icon:'https://cdn.simpleicons.org/instagram/E4405F'
+  },
+
+
+  facebook: {
+    name:'Facebook',
+    icon:'https://cdn.simpleicons.org/facebook/1877F2'
+  },
+
+  fb: {
+    name:'Facebook',
+    icon:'https://cdn.simpleicons.org/facebook/1877F2'
+  },
+
+
+  tiktok: {
+    name:'TikTok',
+    icon:'https://cdn.simpleicons.org/tiktok/ffffff'
+  },
+
+  tt: {
+    name:'TikTok',
+    icon:'https://cdn.simpleicons.org/tiktok/ffffff'
+  },
+
+
+  line: {
+    name:'LINE',
+    icon:'https://cdn.simpleicons.org/line/06C755'
+  }
+
+};
+
+
+/* =========================================================
+   ฟังก์ชันหา Platform
+   ========================================================= */
+
+function getPlatformInfo(platform){
+
+  const key =
+    String(platform || '')
+      .trim()
+      .toLowerCase();
+
+
+  return PLATFORM_INFO[key] || {
+
+    name:key || 'Social',
+
+    icon:null
+
+  };
+
+}
+
+
+/* =========================================================
+   สร้าง HTML ของ Platform
+   ========================================================= */
+
+function platformHTML(platform){
+
+  const info =
+    getPlatformInfo(platform);
+
+
+  if(info.icon){
+
+    return `
+
+      <img
+        src="${info.icon}"
+        class="platform-icon"
+        alt="${esc(info.name)}"
+      >
+
+    `;
+
+  }
+
+
+  return '✨';
+
+}
+
+
+/* =========================================================
+   QR
+   ========================================================= */
 
 function makeQR(canvas, size){
-  if(typeof QRCode === 'undefined') return;
-  QRCode.toCanvas(canvas, SITE, {
-    width: size, margin: 1,
-    color: { dark:'#000000', light:'#ffffff' }
-  }, e => e && console.error('QR:', e));
+
+  if(typeof QRCode === 'undefined')
+    return;
+
+
+  QRCode.toCanvas(
+
+    canvas,
+
+    SITE,
+
+    {
+
+      width:size,
+
+      margin:1,
+
+      color:{
+        dark:'#000000',
+        light:'#ffffff'
+      }
+
+    },
+
+    e => {
+
+      if(e)
+        console.error('QR:',e);
+
+    }
+
+  );
+
 }
 
-/* ---------- หน้าจอว่าง : QR ใหญ่ ---------- */
-function idle(){
-  if(curId === 'IDLE') return;
-  curId = 'IDLE';
-  bg.style.backgroundImage = 'none';
-  qrCorner.classList.add('hidden');
 
-  /*stage.innerHTML = `
-    <div class="anim text-center">
-      <div class="text-[11vh] float">🌃</div>
-      <p class="text-[6.5vh] font-black bg-gradient-to-r from-fuchsia-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
-        ${esc(S?.venue || 'NEON BAR')}</p>
-      <div class="mt-[3vh] inline-block bg-white rounded-[2.5vh] p-[2vh] pulse2">
-        <canvas id="qrBig"></canvas>
-      </div>
-      <p class="text-[6.5vh] font-black bg-gradient-to-r from-fuchsia-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
-        ${esc(S?.venue || 'NEON BAR')}</p>
-      <p class="text-[3.4vh] mt-[2.5vh] font-black">📱 สแกนเปิดวาร์ปขึ้นจอ</p>
-      <p class="text-[2vh] mt-[.8vh] text-slate-400">พบเพื่อนใหม่ 🥂หมดเเก้ว</p>
-    </div>`;*/
+/* =========================================================
+   การ์ดทดสอบ
+   ========================================================= */
 
-    stage.innerHTML = `
-    <div class="anim text-center parent-container">
-      <div class="mt-[3vh] inline-block bg-white rounded-[2.5vh] p-[2vh] pulse2 ">
-        <canvas id="qrBig"></canvas>
-      </div>
-      <p class="text-[10vh] font-black bg-gradient-to-r from-fuchsia-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight sriracha-regular tomm">
-        ${esc(S?.venue || 'NEON BAR')}</p>
-      <p class="text-[5vh] mt-[2.5vh] font-black sriracha-regular">📱 สแกนเปิดวาร์ปขึ้นจอ</p>
-      <p class="text-[4vh] mt-[.8vh] text-slate-400 sriracha-regular" style="color: #ffffff;">พบเพื่อนใหม่ 🥂หมดเเก้ว</p>
-    </div>`;
+const TEST_CARD = {
 
-  makeQR(document.getElementById('qrBig'), Math.round(innerHeight * 0.35));
+  id:'TEST-CARD',
+
+  image_url:
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1000&q=85',
+
+  /*
+   * ทดสอบ Instagram
+   *
+   * สามารถเปลี่ยนเป็น
+   *
+   * facebook
+   * tiktok
+   * line
+   *
+   * เพื่อทดสอบแต่ละแพลตฟอร์มได้
+   */
+
+  platform:'instagram',
+
+  handle:'t',
+
+  message:
+    'ไม่มีเพื่อน มาหาเพื่อนที่แลนด์มาร์กได้เลย 🥂✨',
+
+  end_at:
+    new Date(
+      Date.now() + 60 * 60 * 1000
+    ).toISOString()
+
+};
+
+
+/* =========================================================
+   เปิด / ปิด Test Card
+   ========================================================= */
+
+function toggleTestCard(enabled){
+
+  TEST_MODE =
+    enabled;
+
+
+  const status =
+    document.getElementById(
+      'testSwitchStatus'
+    );
+
+
+  const badge =
+    document.getElementById(
+      'testBadge'
+    );
+
+
+  if(enabled){
+
+    status.textContent =
+      'กำลังแสดงการ์ดทดสอบ';
+
+
+    badge.classList.add(
+      'show'
+    );
+
+
+    renderTestCard();
+
+  }
+
+  else{
+
+    status.textContent =
+      'ปิดอยู่';
+
+
+    badge.classList.remove(
+      'show'
+    );
+
+
+    curId = null;
+
+
+    if(queue.length){
+
+      render();
+
+    }
+
+    else{
+
+      idle();
+
+    }
+
+  }
+
 }
 
-/* ---------- วาดการ์ด ---------- */
-function render(){
-  if(!queue.length) return idle();
-  const o = queue[idx % queue.length];
-  if(o.id === curId) return;
-  curId = o.id;
 
-  bg.style.backgroundImage = `url(${o.image_url})`;
-  const ic = (typeof ICON !== 'undefined' && ICON[o.platform]) || '✨';
+/* =========================================================
+   แสดงการ์ดทดสอบ
+   ========================================================= */
+
+function renderTestCard(){
+
+  const o =
+    TEST_CARD;
+
+
+  curId =
+    o.id;
+
+
+  bg.style.backgroundImage =
+    `url(${o.image_url})`;
+
+
+  const platformIcon =
+    platformHTML(
+      o.platform
+    );
+
 
   stage.innerHTML = `
-    <div class="anim flex flex-col landscape:flex-row items-center justify-center gap-[4vh] landscape:gap-[5vw] w-full h-full">
-      <img src="${o.image_url}"
-           class="h-[52vh] landscape:h-[82vh] aspect-[3/4] object-cover rounded-[3vh]
-                  ring-2 ring-white/20">
-      <div class="text-center landscape:text-left max-w-[90vw] landscape:max-w-[38vw]">
-        <p class="text-[6vh] landscape:text-[7vh] font-black leading-none
-                  bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent break-all">
-          ${ic} @${esc(o.handle)}</p>
-        <p class="text-[3.4vh] mt-[2.5vh] text-slate-100 leading-snug">${esc(o.message || '')}</p>
-        <p id="cd" class="text-[2vh] mt-[3vh] text-slate-400 tabular-nums"></p>
+
+    <div
+      class="anim
+             flex
+             flex-col
+             landscape:flex-row
+             items-center
+             justify-center
+             gap-[4vh]
+             landscape:gap-[5vw]
+             w-full
+             h-full"
+    >
+
+
+      <img
+        src="${o.image_url}"
+
+        class="
+          h-[52vh]
+          landscape:h-[82vh]
+          aspect-[3/4]
+          object-cover
+          rounded-[3vh]
+          ring-2
+          ring-white/20
+        "
+      >
+
+
+      <div
+        class="
+          text-center
+          landscape:text-left
+          max-w-[90vw]
+          landscape:max-w-[38vw]
+        "
+      >
+
+
+        <p
+          class="
+            text-[6vh]
+            landscape:text-[7vh]
+            font-black
+            leading-none
+            bg-gradient-to-r
+            from-fuchsia-400
+            to-cyan-400
+            bg-clip-text
+            text-transparent
+            break-all
+          "
+        >
+
+          ${platformIcon}
+
+          @${esc(o.handle)}
+
+        </p>
+
+
+        <p
+          class="
+            text-[3.4vh]
+            mt-[2.5vh]
+            text-slate-100
+            leading-snug
+          "
+        >
+
+          ${esc(o.message)}
+
+        </p>
+
+
+        <p
+          id="cd"
+          class="
+            text-[2vh]
+            mt-[3vh]
+            text-slate-400
+            tabular-nums
+          "
+        >
+        </p>
+
+
       </div>
-    </div>`;
 
-  qrCorner.classList.remove('hidden');
-  makeQR(qrSmall, Math.round(innerHeight * 0.25));
+
+    </div>
+
+  `;
+
+
+  qrCorner.classList.remove(
+    'hidden'
+  );
+
+
+  makeQR(
+
+    qrSmall,
+
+    Math.round(
+      innerHeight * 0.25
+    )
+
+  );
+
 }
 
-/* ---------- นาฬิกา + นับถอยหลัง ---------- */
+
+/* =========================================================
+   หน้าจอว่าง
+   ========================================================= */
+
+function idle(){
+
+  if(TEST_MODE)
+    return;
+
+
+  if(curId === 'IDLE')
+    return;
+
+
+  curId =
+    'IDLE';
+
+
+  bg.style.backgroundImage =
+    'none';
+
+
+  qrCorner.classList.add(
+    'hidden'
+  );
+
+
+  /*
+  stage.innerHTML = `
+    <div class="anim text-center">
+
+      <div class="text-[11vh] float">
+        🌃
+      </div>
+
+      <p
+        class="text-[6.5vh]
+               font-black
+               bg-gradient-to-r
+               from-fuchsia-400
+               via-pink-400
+               to-cyan-400
+               bg-clip-text
+               text-transparent
+               leading-tight"
+      >
+        ${esc(S?.venue || 'NEON BAR')}
+      </p>
+
+      <div
+        class="mt-[3vh]
+               inline-block
+               bg-white
+               rounded-[2.5vh]
+               p-[2vh]
+               pulse2"
+      >
+        <canvas id="qrBig"></canvas>
+      </div>
+
+      <p
+        class="text-[6.5vh]
+               font-black
+               bg-gradient-to-r
+               from-fuchsia-400
+               via-pink-400
+               to-cyan-400
+               bg-clip-text
+               text-transparent
+               leading-tight"
+      >
+        ${esc(S?.venue || 'NEON BAR')}
+      </p>
+
+      <p
+        class="text-[3.4vh]
+               mt-[2.5vh]
+               font-black"
+      >
+        📱 สแกนเปิดวาร์ปขึ้นจอ
+      </p>
+
+      <p
+        class="text-[2vh]
+               mt-[.8vh]
+               text-slate-400"
+      >
+        พบเพื่อนใหม่ 🥂หมดเเก้ว
+      </p>
+
+    </div>
+  `;
+  */
+
+
+  stage.innerHTML = `
+
+    <div
+      class="
+        anim
+        text-center
+        parent-container
+      "
+    >
+
+      <div
+        class="
+          mt-[3vh]
+          inline-block
+          bg-white
+          rounded-[2.5vh]
+          p-[2vh]
+          pulse2
+        "
+      >
+
+        <canvas
+          id="qrBig">
+        </canvas>
+
+      </div>
+
+
+      <p
+        class="
+          text-[10vh]
+          font-black
+          bg-gradient-to-r
+          from-fuchsia-400
+          via-pink-400
+          to-cyan-400
+          bg-clip-text
+          text-transparent
+          leading-tight
+          sriracha-regular
+          tomm
+        "
+      >
+
+        ${esc(
+          S?.venue ||
+          'NEON BAR'
+        )}
+
+      </p>
+
+
+      <p
+        class="
+          text-[5vh]
+          mt-[2.5vh]
+          font-black
+          sriracha-regular
+        "
+      >
+
+        📱 สแกนเปิดวาร์ปขึ้นจอ
+
+      </p>
+
+
+      <p
+        class="
+          text-[4vh]
+          mt-[.8vh]
+          text-slate-400
+          sriracha-regular
+        "
+        style="color:#ffffff;"
+      >
+
+        พบเพื่อนใหม่ 🥂หมดเเก้ว
+
+      </p>
+
+
+    </div>
+
+  `;
+
+
+  makeQR(
+
+    document.getElementById(
+      'qrBig'
+    ),
+
+    Math.round(
+      innerHeight * 0.35
+    )
+
+  );
+
+}
+
+
+/* =========================================================
+   วาดการ์ดจริง
+   ========================================================= */
+
+function render(){
+
+  /*
+   * ถ้าเปิด Test Mode
+   * ไม่ให้ข้อมูลจริงมาแทน
+   */
+
+  if(TEST_MODE){
+
+    renderTestCard();
+
+    return;
+
+  }
+
+
+  if(!queue.length)
+    return idle();
+
+
+  const o =
+    queue[
+      idx % queue.length
+    ];
+
+
+  if(o.id === curId)
+    return;
+
+
+  curId =
+    o.id;
+
+
+  bg.style.backgroundImage =
+    `url(${o.image_url})`;
+
+
+  /*
+   * =====================================================
+   * แก้ตรงนี้
+   *
+   * เดิม:
+   *
+   * const ic =
+   *   (typeof ICON !== 'undefined' && ICON[o.platform])
+   *   || '✨';
+   *
+   * ปัญหาคือ Index รุ่นใหม่ส่ง
+   *
+   * instagram
+   * facebook
+   * tiktok
+   * line
+   *
+   * แต่ ICON เดิมอาจมีแค่
+   *
+   * ig
+   * fb
+   * tt
+   *
+   * =====================================================
+   */
+
+  const platformIcon =
+    platformHTML(
+      o.platform
+    );
+
+
+  stage.innerHTML = `
+
+    <div
+      class="
+        anim
+        flex
+        flex-col
+        landscape:flex-row
+        items-center
+        justify-center
+        gap-[4vh]
+        landscape:gap-[5vw]
+        w-full
+        h-full
+      "
+    >
+
+
+      <img
+        src="${o.image_url}"
+
+        class="
+          h-[52vh]
+          landscape:h-[82vh]
+          aspect-[3/4]
+          object-cover
+          rounded-[3vh]
+          ring-2
+          ring-white/20
+        "
+      >
+
+
+      <div
+        class="
+          text-center
+          landscape:text-left
+          max-w-[90vw]
+          landscape:max-w-[38vw]
+        "
+      >
+
+
+        <p
+          class="
+            text-[6vh]
+            landscape:text-[7vh]
+            font-black
+            leading-none
+            bg-gradient-to-r
+            from-fuchsia-400
+            to-cyan-400
+            bg-clip-text
+            text-transparent
+            break-all
+          "
+        >
+
+          ${platformIcon}
+
+          @${esc(o.handle)}
+
+        </p>
+
+
+        <p
+          class="
+            text-[3.4vh]
+            mt-[2.5vh]
+            text-slate-100
+            leading-snug
+          "
+        >
+
+          ${esc(
+            o.message || ''
+          )}
+
+        </p>
+
+
+        <p
+          id="cd"
+          class="
+            text-[2vh]
+            mt-[3vh]
+            text-slate-400
+            tabular-nums
+          "
+        >
+        </p>
+
+
+      </div>
+
+
+    </div>
+
+  `;
+
+
+  qrCorner.classList.remove(
+    'hidden'
+  );
+
+
+  makeQR(
+
+    qrSmall,
+
+    Math.round(
+      innerHeight * 0.25
+    )
+
+  );
+
+}
+
+
+/* =========================================================
+   นาฬิกา + นับถอยหลัง
+   ========================================================= */
+
 setInterval(()=>{
-  clock.textContent = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
-  const el = document.getElementById('cd');
-  if(!el || !queue.length) return;
-  const o = queue[idx % queue.length];
-  if(!o?.end_at) return;
-  const s = Math.max(0, Math.ceil((new Date(o.end_at) - Date.now())/1000));
-  el.textContent = `⏱ เหลือ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-}, 1000);
 
-/* ---------- ดึงคิว + ปิดการ์ดหมดเวลา ---------- */
+  clock.textContent =
+    new Date().toLocaleTimeString(
+      'th-TH',
+      {
+        hour:'2-digit',
+        minute:'2-digit'
+      }
+    );
+
+
+  const el =
+    document.getElementById(
+      'cd'
+    );
+
+
+  if(!el)
+    return;
+
+
+  /* =====================================================
+     TEST MODE
+     ===================================================== */
+
+  if(TEST_MODE){
+
+    const s =
+      Math.max(
+        0,
+
+        Math.ceil(
+
+          (
+            new Date(
+              TEST_CARD.end_at
+            )
+
+            -
+
+            Date.now()
+
+          ) / 1000
+
+        )
+      );
+
+
+    el.textContent =
+      `⏱ เหลือ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+
+    return;
+
+  }
+
+
+  if(!queue.length)
+    return;
+
+
+  const o =
+    queue[
+      idx % queue.length
+    ];
+
+
+  if(!o?.end_at)
+    return;
+
+
+  const s =
+    Math.max(
+
+      0,
+
+      Math.ceil(
+
+        (
+          new Date(
+            o.end_at
+          )
+
+          -
+
+          Date.now()
+
+        ) / 1000
+
+      )
+
+    );
+
+
+  el.textContent =
+    `⏱ เหลือ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+},1000);
+
+
+/* =========================================================
+   ดึงคิว + ปิดการ์ดหมดเวลา
+   ========================================================= */
+
 async function load(){
-  const now = new Date().toISOString();
 
-  await sb.from('orders').update({ status:'done' })
-    .eq('status','live').lt('end_at', now);
+  const now =
+    new Date().toISOString();
 
-  const { data, error } = await sb.from('orders')
-    .select('*').eq('status','live').gt('end_at', now)
-    .order('created_at', { ascending:true });
 
-  if(error){ console.error(error); return; }
-  queue = data || [];
+  await sb
+    .from('orders')
+    .update({
+      status:'done'
+    })
+    .eq(
+      'status',
+      'live'
+    )
+    .lt(
+      'end_at',
+      now
+    );
 
-  if(!queue.length){ idx = 0; return idle(); }
-  if(!queue.some(o => o.id === curId)){ idx = 0; render(); }
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from('orders')
+      .select('*')
+      .eq(
+        'status',
+        'live'
+      )
+      .gt(
+        'end_at',
+        now
+      )
+      .order(
+        'created_at',
+        {
+          ascending:true
+        }
+      );
+
+
+  if(error){
+
+    console.error(
+      error
+    );
+
+    return;
+
+  }
+
+
+  queue =
+    data || [];
+
+
+  /*
+   * ถ้าอยู่ใน Test Mode
+   * ห้ามข้อมูลจริงเปลี่ยนหน้าจอ
+   */
+
+  if(TEST_MODE){
+
+    return;
+
+  }
+
+
+  if(!queue.length){
+
+    idx = 0;
+
+    return idle();
+
+  }
+
+
+  if(
+    !queue.some(
+      o => o.id === curId
+    )
+  ){
+
+    idx = 0;
+
+    render();
+
+  }
+
 }
 
-setInterval(()=>{ if(queue.length > 1){ idx++; render(); } }, 8000);
-setInterval(load, 10000);
 
-sb.channel('screen')
-  .on('postgres_changes', { event:'*', schema:'public', table:'orders' }, load)
+/* =========================================================
+   เปลี่ยนการ์ดทุก 8 วินาที
+   ========================================================= */
+
+setInterval(()=>{
+
+  if(TEST_MODE)
+    return;
+
+
+  if(queue.length > 1){
+
+    idx++;
+
+    render();
+
+  }
+
+},8000);
+
+
+/* =========================================================
+   โหลดข้อมูลทุก 10 วินาที
+   ========================================================= */
+
+setInterval(
+  load,
+  10000
+);
+
+
+/* =========================================================
+   Supabase Realtime
+   ========================================================= */
+
+sb
+  .channel('screen')
+
+  .on(
+
+    'postgres_changes',
+
+    {
+      event:'*',
+      schema:'public',
+      table:'orders'
+    },
+
+    load
+
+  )
+
   .subscribe();
 
-addEventListener('click', ()=>{
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-});
-addEventListener('resize', ()=>{ curId = null; queue.length ? render() : idle(); });
 
-(async()=>{ S = await getSettings(); idle(); load(); })();
+/* =========================================================
+   Fullscreen
+   ========================================================= */
+
+addEventListener(
+  'click',
+  ()=>{
+
+    if(!document.fullscreenElement){
+
+      document
+        .documentElement
+        .requestFullscreen?.();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   Resize
+   ========================================================= */
+
+addEventListener(
+  'resize',
+  ()=>{
+
+    if(TEST_MODE){
+
+      renderTestCard();
+
+      return;
+
+    }
+
+
+    curId = null;
+
+
+    queue.length
+      ? render()
+      : idle();
+
+  }
+);
+
+
+/* =========================================================
+   เริ่มระบบ
+   ========================================================= */
+
+(async()=>{
+
+  S =
+    await getSettings();
+
+
+  idle();
+
+
+  load();
+
+})();
+
 </script>
-</body></html>
+
+</body>
+</html>
