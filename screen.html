@@ -1674,8 +1674,11 @@ async function load(){
 
   if(current){
 
-    curId = current.id;
-
+    /*
+     * จำ ID ไว้สำหรับ F5 แต่ห้ามใส่ curId ตรงนี้
+     * เพราะ render() จะคิดว่าการ์ดถูกวาดแล้วและ return ทันที
+     * หลัง F5 curId ต้องเป็น null แล้วให้ render() เป็นคนตั้งค่า
+     */
     localStorage.setItem(
       'warp_current_card_id',
       current.id
@@ -1707,7 +1710,11 @@ async function load(){
       /*
        * ยังไม่หมดเวลา
        * ห้ามสลับการ์ด
+       *
+       * หลัง F5 curId ยังเป็น null
+       * เพื่อให้ render() วาดการ์ดเดิมกลับขึ้นจอ
        */
+      curId = null;
       render();
 
       return;
