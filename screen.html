@@ -41,7 +41,7 @@
   body{
     height:100%;
     overflow:hidden;
-    background:transparent;
+    background:#00000000;
   }
 
   body{
@@ -337,34 +337,6 @@
 
     vertical-align:-.12em;
 
-  }
-
-
-  /* =====================================================
-     OBS TRANSPARENT BACKGROUND
-     - ไม่ใช้ Chroma Key สีดำ
-     - ให้ OBS รับค่า Alpha จาก Browser Source โดยตรง
-     - สีดำภายในรูปจะยังคงเป็นสีดำ ไม่ถูกลบ
-     ===================================================== */
-
-  html,
-  body,
-  #stage{
-    background:transparent !important;
-  }
-
-  /* ภาพพื้นหลังเบลอเป็นเพียง decoration
-     ปิดไว้เพื่อไม่ให้มันกลายเป็นพื้นหลังทึบใน OBS */
-  #bg{
-    opacity:0 !important;
-    background-image:none !important;
-    pointer-events:none !important;
-  }
-
-  /* Overlay เดิมทำให้ทั้งหน้ามีสีดำ 50%
-     จึงต้องโปร่งใสจริง */
-  body > .fixed.inset-0.bg-black\\/50{
-    display:none !important;
   }
 
 </style>
@@ -1428,6 +1400,37 @@ setInterval(()=>{
    ดึงคิว + ปิดการ์ดหมดเวลา
    ========================================================= */
 
+/* =========================================================
+   ลำดับอนุมัติจากข้อมูลเดิม
+
+   admin เดิมบันทึก end_at = เวลาที่อนุมัติ + minutes
+   ดังนั้นเราสามารถย้อนหาเวลาอนุมัติได้จาก
+
+   end_at - minutes
+
+   โดยไม่ต้องเพิ่ม column ใหม่ใน Supabase
+   ========================================================= */
+function approvedTime(o){
+
+  const end =
+    new Date(o.end_at).getTime();
+
+  const minutes =
+    Number(o.minutes) || 0;
+
+  if(Number.isFinite(end)){
+
+    return end - (minutes * 60000);
+
+  }
+
+  return new Date(o.created_at).getTime() || 0;
+}
+
+
+/* =========================================================
+   ดึงคิว + ปิดการ์ดหมดเวลา
+   ========================================================= */
 async function load(){
 
   const now =
@@ -1463,12 +1466,6 @@ async function load(){
       .gt(
         'end_at',
         now
-      )
-      .order(
-        'created_at',
-        {
-          ascending:true
-        }
       );
 
 
@@ -1483,8 +1480,15 @@ async function load(){
   }
 
 
+  /*
+   * สำคัญ:
+   * เรียงตามเวลาอนุมัติจริงจาก end_at - minutes
+   * ไม่ใช่เรียงตามเวลาสร้างรายการ
+   */
   queue =
-    data || [];
+    (data || []).sort(
+      (a,b) => approvedTime(a) - approvedTime(b)
+    );
 
 
   /*
@@ -1508,40 +1512,87 @@ async function load(){
   }
 
 
-  if(
-    !queue.some(
+  /*
+   * ถ้าการ์ดที่กำลังแสดงยังอยู่ในคิว
+   * ห้าม render ใหม่
+   * เพื่อป้องกันการ์ดกระพริบ/สลับ
+   * ตอนมีรายการใหม่เข้ามา
+   */
+  const currentIndex =
+    queue.findIndex(
       o => o.id === curId
-    )
-  ){
+    );
 
-    idx = 0;
 
-    render();
+  if(currentIndex !== -1){
+
+    idx = currentIndex;
+
+    return;
 
   }
+
+
+  /*
+   * การ์ดเดิมหมดเวลา/ถูกลบออกแล้ว
+   * จึงเลือกการ์ดถัดไปตามลำดับอนุมัติ
+   */
+  idx = 0;
+  render();
 
 }
 
 
 /* =========================================================
-   เปลี่ยนการ์ดทุก 8 วินาที
-   ========================================================= */
+   เปลี่ยนการ์ดเมื่อการ์ดปัจจุบันหมดเวลาเท่านั้น
 
-setInterval(()=>{
+   ไม่มีการเปลี่ยนทุก 8 วินาทีอีกแล้ว
+   ========================================================= */
+let expiryLoading = false;
+
+setInterval(async()=>{
 
   if(TEST_MODE)
     return;
 
 
-  if(queue.length > 1){
+  if(!queue.length)
+    return;
 
-    idx++;
 
-    render();
+  const current =
+    queue.find(
+      o => o.id === curId
+    );
+
+
+  if(!current?.end_at)
+    return;
+
+
+  const expired =
+    new Date(current.end_at).getTime() <= Date.now();
+
+
+  if(!expired || expiryLoading)
+    return;
+
+
+  expiryLoading = true;
+
+
+  try{
+
+    await load();
+
+  }
+  finally{
+
+    expiryLoading = false;
 
   }
 
-},8000);
+},1000);
 
 
 /* =========================================================
