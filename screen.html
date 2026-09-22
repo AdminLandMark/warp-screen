@@ -1621,13 +1621,18 @@ async function load(){
 
     queue = [];
     idx = 0;
-    curId = null;
 
     localStorage.removeItem(
       'warp_current_card_id'
     );
 
-    return idle();
+    /* ถ้า QR ใหญ่กำลังแสดงอยู่แล้ว ห้ามวาดใหม่ */
+    if(curId !== 'IDLE'){
+      curId = null;
+      idle();
+    }
+
+    return;
 
   }
 
