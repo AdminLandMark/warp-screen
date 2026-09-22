@@ -1429,28 +1429,57 @@ function approvedTime(o){
 
 
 /* =========================================================
+   จำลำดับอนุมัติเดิมไว้ในเครื่อง
+   เพื่อไม่ให้การเริ่มเวลาของการ์ดเปลี่ยนลำดับคิว
+   ========================================================= */
+function getApprovalMap(){
+
+  try{
+    return JSON.parse(
+      localStorage.getItem('warp_approval_times') || '{}'
+    );
+  }
+  catch(e){
+    return {};
+  }
+}
+
+function sortByApprovalTime(list){
+
+  const map = getApprovalMap();
+  let changed = false;
+
+  for(const o of (list || [])){
+    if(!o?.id) continue;
+
+    if(map[o.id] == null){
+      map[o.id] = approvedTime(o);
+      changed = true;
+    }
+  }
+
+  if(changed){
+    localStorage.setItem(
+      'warp_approval_times',
+      JSON.stringify(map)
+    );
+  }
+
+  return (list || []).sort((a,b)=>{
+    const ta = Number(map[a.id] ?? approvedTime(a));
+    const tb = Number(map[b.id] ?? approvedTime(b));
+
+    if(ta !== tb) return ta - tb;
+
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
+
+/* =========================================================
    ดึงคิว + ปิดการ์ดหมดเวลา
    ========================================================= */
-async function load(){
-
-  const now =
-    new Date().toISOString();
-
-
-  await sb
-    .from('orders')
-    .update({
-      status:'done'
-    })
-    .eq(
-      'status',
-      'live'
-    )
-    .lt(
-      'end_at',
-      now
-    );
-
+async function fetchLiveOrders(){
 
   const {
     data,
@@ -1459,52 +1488,290 @@ async function load(){
     await sb
       .from('orders')
       .select('*')
-      .eq(
-        'status',
-        'live'
-      )
-      .gt(
-        'end_at',
-        now
-      );
+      .eq('status','live');
 
 
   if(error){
 
     console.error(
+      'LOAD LIVE ORDERS ERROR:',
       error
     );
 
-    return;
+    return null;
 
   }
 
 
-  /*
-   * สำคัญ:
-   * เรียงตามเวลาอนุมัติจริงจาก end_at - minutes
-   * ไม่ใช่เรียงตามเวลาสร้างรายการ
-   */
-  queue =
-    (data || []).sort(
-      (a,b) => approvedTime(a) - approvedTime(b)
+  return sortByApprovalTime(data || []);
+
+}
+
+
+/* =========================================================
+   เริ่มเวลาให้การ์ดที่กำลังขึ้นจอ
+
+   สำคัญมาก:
+   การ์ดที่ status = live แต่ยังไม่ถูกเลือกขึ้นจอ
+   จะยังไม่ถูกนับเวลา
+
+   end_at ของรายการที่รอคิวอาจถูกตั้งไว้ตั้งแต่ตอนอนุมัติ
+   แต่เราจะ "เริ่มใหม่" เฉพาะตอนที่การ์ดถูกนำขึ้นจอจริง
+   ========================================================= */
+async function startCardTimer(o){
+
+  const minutes =
+    Number(o.minutes) || 0;
+
+  const endAt =
+    new Date(
+      Date.now() + minutes * 60000
+    ).toISOString();
+
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from('orders')
+      .update({
+        end_at:endAt
+      })
+      .eq('id',o.id)
+      .eq('status','live')
+      .select('*');
+
+
+  if(error){
+
+    console.error(
+      'START CARD TIMER ERROR:',
+      error
+    );
+
+    return null;
+
+  }
+
+
+  if(!data || !data.length){
+
+    console.warn(
+      'ไม่สามารถเริ่มเวลาให้การ์ด:',
+      o.id
+    );
+
+    return null;
+
+  }
+
+
+  return data[0];
+
+}
+
+
+/* =========================================================
+   ดึงคิว + ควบคุมการ์ดทีละใบ
+
+   กฎใหม่:
+
+   1. ทุกใบที่ admin อนุมัติจะเป็น status = live
+   2. แต่มีเพียง "ใบที่ขึ้นจอ" เท่านั้นที่เริ่มนับ end_at
+   3. ใบที่รอคิวจะไม่ถูกปิดเมื่อ end_at เดิมหมด
+   4. เมื่อใบปัจจุบันหมดเวลา -> ปิดเฉพาะใบนั้น
+   5. จากนั้นเลือกใบถัดไปตามลำดับอนุมัติ
+   6. เริ่มเวลาของใบใหม่ตอนขึ้นจอจริง
+   ========================================================= */
+async function load(){
+
+  if(TEST_MODE)
+    return;
+
+
+  let liveOrders =
+    await fetchLiveOrders();
+
+
+  if(!liveOrders)
+    return;
+
+
+  if(!liveOrders.length){
+
+    queue = [];
+    idx = 0;
+    curId = null;
+
+    localStorage.removeItem(
+      'warp_current_card_id'
+    );
+
+    return idle();
+
+  }
+
+
+  /* =====================================================
+     ถ้ามีการ์ดปัจจุบันอยู่
+     ===================================================== */
+
+  let current =
+    liveOrders.find(
+      o => o.id === curId
     );
 
 
-  /*
-   * ถ้าอยู่ใน Test Mode
-   * ห้ามข้อมูลจริงเปลี่ยนหน้าจอ
-   */
+  /* =====================================================
+     กรณีรีเฟรชหน้า
 
-  if(TEST_MODE){
+     จำ ID ของการ์ดที่กำลังขึ้นจอไว้ใน browser
+     ===================================================== */
 
-    return;
+  if(!current){
+
+    const savedId =
+      localStorage.getItem(
+        'warp_current_card_id'
+      );
+
+
+    if(savedId){
+
+      current =
+        liveOrders.find(
+          o => o.id === savedId
+        );
+
+    }
 
   }
 
 
-  if(!queue.length){
+  /* =====================================================
+     ถ้ามีการ์ดปัจจุบัน
+     ===================================================== */
 
+  if(current){
+
+    curId = current.id;
+
+    localStorage.setItem(
+      'warp_current_card_id',
+      current.id
+    );
+
+
+    /*
+     * ตรวจเฉพาะการ์ดที่กำลังขึ้นจอเท่านั้น
+     * ว่าหมดเวลาหรือยัง
+     */
+
+    const currentEnd =
+      current.end_at
+        ? new Date(current.end_at).getTime()
+        : 0;
+
+
+    if(currentEnd > Date.now()){
+
+      queue = liveOrders;
+
+      idx = Math.max(
+        0,
+        liveOrders.findIndex(
+          o => o.id === current.id
+        )
+      );
+
+      /*
+       * ยังไม่หมดเวลา
+       * ห้ามสลับการ์ด
+       */
+      render();
+
+      return;
+
+    }
+
+
+    /*
+     * การ์ดปัจจุบันหมดเวลาแล้ว
+     * ปิดเฉพาะการ์ดนี้
+     */
+
+    const {
+      error:doneError
+    } =
+      await sb
+        .from('orders')
+        .update({
+          status:'done',
+          end_at:new Date().toISOString()
+        })
+        .eq('id',current.id)
+        .eq('status','live');
+
+
+    if(doneError){
+
+      console.error(
+        'FINISH CARD ERROR:',
+        doneError
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * ล้าง current เพื่อให้เลือกใบถัดไป
+     */
+
+    curId = null;
+
+    localStorage.removeItem(
+      'warp_current_card_id'
+    );
+
+
+    /*
+     * ดึงรายการใหม่อีกครั้ง
+     */
+
+    liveOrders =
+      await fetchLiveOrders();
+
+
+    if(!liveOrders || !liveOrders.length){
+
+      queue = [];
+      idx = 0;
+
+      return idle();
+
+    }
+
+  }
+
+
+  /* =====================================================
+     เลือกการ์ดถัดไป
+
+     สำคัญ:
+     ไม่ดูว่า end_at เดิมหมดหรือยัง
+     เพราะ end_at เดิมของใบที่รอคิวไม่มีความหมาย
+     ===================================================== */
+
+  const next =
+    liveOrders[0];
+
+
+  if(!next){
+
+    queue = [];
     idx = 0;
 
     return idle();
@@ -1512,41 +1779,56 @@ async function load(){
   }
 
 
+  /* =====================================================
+     เริ่มนับเวลาของการ์ดนี้ "ตอนขึ้นจอจริง"
+     ===================================================== */
+
+  const started =
+    await startCardTimer(next);
+
+
+  if(!started)
+    return;
+
+
   /*
-   * ถ้าการ์ดที่กำลังแสดงยังอยู่ในคิว
-   * ห้าม render ใหม่
-   * เพื่อป้องกันการ์ดกระพริบ/สลับ
-   * ตอนมีรายการใหม่เข้ามา
+   * ใช้ข้อมูลหลัง update
    */
-  const currentIndex =
-    queue.findIndex(
-      o => o.id === curId
+
+  queue =
+    liveOrders.map(o =>
+      o.id === started.id
+        ? started
+        : o
     );
 
 
-  if(currentIndex !== -1){
-
-    idx = currentIndex;
-
-    return;
-
-  }
-
-
   /*
-   * การ์ดเดิมหมดเวลา/ถูกลบออกแล้ว
-   * จึงเลือกการ์ดถัดไปตามลำดับอนุมัติ
+   * อย่าตั้ง curId ก่อน render()
+   * เพราะ render() จะข้ามการวาดทันทีถ้า o.id === curId
+   * ให้ render เป็นคนตั้ง curId เอง
    */
+  curId = null;
+
+
   idx = 0;
+
+
+  localStorage.setItem(
+    'warp_current_card_id',
+    started.id
+  );
+
+
   render();
 
 }
 
 
 /* =========================================================
-   เปลี่ยนการ์ดเมื่อการ์ดปัจจุบันหมดเวลาเท่านั้น
+   เปลี่ยนการ์ดเมื่อ "การ์ดปัจจุบัน" หมดเวลาเท่านั้น
 
-   ไม่มีการเปลี่ยนทุก 8 วินาทีอีกแล้ว
+   ห้ามดู end_at ของการ์ดที่รอคิว
    ========================================================= */
 let expiryLoading = false;
 
@@ -1556,7 +1838,7 @@ setInterval(async()=>{
     return;
 
 
-  if(!queue.length)
+  if(!curId)
     return;
 
 
@@ -1571,7 +1853,8 @@ setInterval(async()=>{
 
 
   const expired =
-    new Date(current.end_at).getTime() <= Date.now();
+    new Date(current.end_at).getTime()
+    <= Date.now();
 
 
   if(!expired || expiryLoading)
@@ -1666,11 +1949,19 @@ addEventListener(
     }
 
 
-    curId = null;
+    /* ห้ามล้าง curId ตอน resize เพราะการ์ดเดิมยังต้องเล่นต่อ */
+    if(curId && queue.length){
 
+      const current = queue.find(o => o.id === curId);
+
+      if(current){
+        render();
+        return;
+      }
+    }
 
     queue.length
-      ? render()
+      ? load()
       : idle();
 
   }
