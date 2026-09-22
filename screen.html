@@ -1584,7 +1584,26 @@ async function startCardTimer(o){
    5. จากนั้นเลือกใบถัดไปตามลำดับอนุมัติ
    6. เริ่มเวลาของใบใหม่ตอนขึ้นจอจริง
    ========================================================= */
+let loadBusy = false;
+
 async function load(){
+
+  /*
+   * สำคัญมาก:
+   * Supabase Realtime จะเรียก load() ทันทีเมื่อเราอัปเดต
+   * end_at ให้การ์ดที่กำลังขึ้นจอ
+   *
+   * ถ้า load() ซ้อนกัน จะเกิดการเริ่มเวลาใบเดิมซ้ำ ๆ
+   * และอาจทำให้จอไม่วาดการ์ด โดยเฉพาะตอนมีหลายใบ
+   *
+   * ดังนั้นให้มี load() ทำงานทีละตัวเท่านั้น
+   */
+  if(loadBusy)
+    return;
+
+  loadBusy = true;
+
+  try{
 
   if(TEST_MODE)
     return;
@@ -1821,6 +1840,11 @@ async function load(){
 
 
   render();
+
+  }
+  finally{
+    loadBusy = false;
+  }
 
 }
 
