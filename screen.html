@@ -1708,14 +1708,23 @@ async function load(){
       );
 
       /*
-       * ยังไม่หมดเวลา
-       * ห้ามสลับการ์ด
+       * สำคัญมาก:
        *
-       * หลัง F5 curId ยังเป็น null
-       * เพื่อให้ render() วาดการ์ดเดิมกลับขึ้นจอ
+       * ถ้าการ์ดนี้กำลังแสดงอยู่แล้ว ห้าม render() ซ้ำ
+       * เพราะ Supabase Realtime จะยิง load() ทุกครั้งที่มี
+       * การ update orders รวมถึงตอนที่เราอัปเดต end_at
+       * ของการ์ดปัจจุบันเอง
+       *
+       * ถ้า render ซ้ำ stage.innerHTML จะถูกสร้างใหม่
+       * และ animation .anim จะเริ่มใหม่ ทำให้การ์ดกระพริบ
+       *
+       * แต่ถ้าเป็น F5 curId จะยังเป็น null
+       * จึงค่อย render การ์ดเดิมกลับขึ้นจอ 1 ครั้ง
        */
-      curId = null;
-      render();
+      if(curId !== current.id){
+        curId = null;
+        render();
+      }
 
       return;
 
