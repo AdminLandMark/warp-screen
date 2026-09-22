@@ -1943,7 +1943,68 @@ sb
       table:'orders'
     },
 
-    load
+    payload => {
+
+      /*
+       * สำคัญมาก:
+       *
+       * User อัปโหลดรูป / ส่งคำขอ / ชำระเงิน
+       * จะทำให้ orders มี INSERT หรือ UPDATE
+       * แต่ไม่ควรทำให้การ์ดที่กำลังแสดงบนจอกระพริบ
+       *
+       * จอสนใจเฉพาะการเปลี่ยนสถานะที่เกี่ยวกับคิว LIVE เท่านั้น
+       *
+       * pending -> live   = มีการ์ดใหม่ถูกอนุมัติ -> โหลดคิว
+       * live -> done      = การ์ดถูกปิด -> โหลดคิว
+       * live -> อื่น ๆ     = การ์ดถูกนำออก -> โหลดคิว
+       *
+       * ส่วน INSERT ของ user และการแก้ข้อมูลระหว่าง pending
+       * จะไม่เรียก load() เลย
+       *
+       * ที่สำคัญ live -> live (เช่น startCardTimer แก้ end_at)
+       * ก็ไม่เรียก load() เพราะไม่ใช่การเปลี่ยนคิว
+       */
+
+      const oldStatus =
+        payload?.old?.status;
+
+      const newStatus =
+        payload?.new?.status;
+
+
+      if(payload.eventType === 'UPDATE'){
+
+        const statusChanged =
+          oldStatus !== newStatus;
+
+        if(!statusChanged)
+          return;
+
+        if(oldStatus === 'live' || newStatus === 'live'){
+          load();
+        }
+
+        return;
+      }
+
+
+      if(payload.eventType === 'DELETE'){
+
+        if(oldStatus === 'live'){
+          load();
+        }
+
+        return;
+      }
+
+
+      /* INSERT
+       * ไม่ต้องทำอะไร
+       * เพราะ user เพิ่งส่งการ์ดเข้าคิว pending
+       * ยังไม่มีผลต่อการ์ดที่กำลังขึ้นจอ
+       */
+
+    }
 
   )
 
