@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Staff · Warp Screen</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>input{font-size:16px!important}</style>
+<style>
+input{font-size:16px!important}
+button{touch-action:manipulation}
+</style>
 </head>
+
 <body class="bg-slate-950 text-white font-[system-ui]">
 
 <div id="login" class="min-h-[100dvh] grid place-items-center p-6">
@@ -14,109 +19,554 @@
     <h1 class="font-black text-xl mb-4">เข้าสู่ระบบสตาฟ</h1>
     <input id="em" placeholder="อีเมล" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 h-14 mb-2">
     <input id="pw" type="password" placeholder="รหัสผ่าน" class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 h-14 mb-3">
-    <button onclick="login()" class="w-full h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">เข้าสู่ระบบ</button>
+    <button id="loginBtn" type="button" class="w-full h-14 rounded-2xl font-black bg-gradient-to-r from-fuchsia-500 to-cyan-500">เข้าสู่ระบบ</button>
     <p id="err" class="text-red-400 text-xs mt-2 text-center"></p>
   </div>
 </div>
 
 <main id="app" class="hidden max-w-6xl mx-auto px-4 pb-24" style="padding-top:calc(16px + env(safe-area-inset-top))">
+
   <div class="flex justify-between items-center mb-4">
     <h1 class="font-black">🛡️ Staff Console</h1>
-    <button onclick="sb.auth.signOut().then(()=>location.reload())" class="text-xs px-3 py-2 rounded-xl bg-white/10">ออกจากระบบ</button>
+    <button id="logoutBtn" type="button" class="text-xs px-3 py-2 rounded-xl bg-white/10">ออกจากระบบ</button>
   </div>
 
   <div class="grid grid-cols-3 gap-2 mb-4 text-center">
-    <div class="rounded-2xl bg-white/5 border border-white/10 p-3"><p class="text-[10px] text-slate-500">ยอดขายวันนี้</p><p id="sSum" class="font-black text-emerald-400 text-lg">0</p></div>
-    <div class="rounded-2xl bg-white/5 border border-white/10 p-3"><p class="text-[10px] text-slate-500">รออนุมัติ</p><p id="sQ" class="font-black text-amber-300 text-lg">0</p></div>
-    <div class="rounded-2xl bg-white/5 border border-white/10 p-3"><p class="text-[10px] text-slate-500">บนจอ</p><p id="sL" class="font-black text-fuchsia-400 text-lg">0</p></div>
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-3">
+      <p class="text-[10px] text-slate-500">ยอดขายวันนี้</p>
+      <p id="sSum" class="font-black text-emerald-400 text-lg">0</p>
+    </div>
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-3">
+      <p class="text-[10px] text-slate-500">รออนุมัติ</p>
+      <p id="sQ" class="font-black text-amber-300 text-lg">0</p>
+    </div>
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-3">
+      <p class="text-[10px] text-slate-500">บนจอ</p>
+      <p id="sL" class="font-black text-fuchsia-400 text-lg">0</p>
+    </div>
+  </div>
+
+  <div class="rounded-3xl bg-white/5 border border-white/10 mb-5 p-4">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="font-black text-sm">⚡ Auto Approve</p>
+        <p id="autoStatus" class="text-[10px] text-slate-500 mt-1">ปิดอยู่ · ต้องกดอนุมัติเอง</p>
+      </div>
+
+      <button id="autoToggle" type="button"
+        class="relative w-14 h-8 rounded-full bg-slate-700 transition-all shrink-0"
+        aria-label="เปิดหรือปิด Auto Approve">
+        <span id="autoDot" class="absolute top-1 left-1 w-6 h-6 rounded-full bg-white transition-all"></span>
+      </button>
+    </div>
+
+    <div class="mt-3 rounded-xl bg-black/20 border border-white/5 p-3">
+      <p class="text-[10px] text-slate-400 leading-relaxed">
+        เมื่อเปิด ระบบจะอนุมัติรายการที่เข้ามาใหม่ให้อัตโนมัติ
+        และนำขึ้นจอทันทีตามจำนวนนาทีของรายการ
+      </p>
+    </div>
   </div>
 
   <details class="rounded-3xl bg-white/5 border border-white/10 mb-5">
     <summary class="px-4 py-4 font-bold text-sm cursor-pointer">⚙️ ตั้งค่าแพ็กเกจ & พร้อมเพย์</summary>
     <div class="px-4 pb-4 space-y-3">
       <div id="pkgEdit" class="space-y-2"></div>
-      <button onclick="addPkg()" class="w-full py-3 rounded-xl bg-white/10 text-xs font-bold">+ เพิ่มแพ็กเกจ</button>
-      <label class="block text-[11px] text-slate-400">ชื่อร้าน<input id="cVenue" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12"></label>
-      <label class="block text-[11px] text-slate-400">PromptPay<input id="cPP" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12"></label>
-      <button onclick="saveCfg()" class="w-full h-12 rounded-xl bg-cyan-500 font-black text-sm">บันทึกการตั้งค่า</button>
+      <button id="addPkgBtn" type="button" class="w-full py-3 rounded-xl bg-white/10 text-xs font-bold">+ เพิ่มแพ็กเกจ</button>
+      <label class="block text-[11px] text-slate-400">
+        ชื่อร้าน
+        <input id="cVenue" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
+      </label>
+      <label class="block text-[11px] text-slate-400">
+        PromptPay
+        <input id="cPP" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
+      </label>
+      <button id="saveCfgBtn" type="button" class="w-full h-12 rounded-xl bg-cyan-500 font-black text-sm">บันทึกการตั้งค่า</button>
     </div>
   </details>
 
   <h3 class="font-black text-sm mb-2.5">🧾 รออนุมัติ</h3>
   <div id="queue" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5"></div>
+
   <h3 class="font-black text-sm mt-7 mb-2.5">🔴 กำลังขึ้นจอ</h3>
   <div id="live" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5"></div>
 </main>
 
-<div id="lb" onclick="this.classList.add('hidden')" class="hidden fixed inset-0 z-50 bg-black/90 grid place-items-center p-4">
-  <img id="lbImg" class="max-h-[90vh] rounded-2xl"></div>
+<div id="lb" class="hidden fixed inset-0 z-[99999] bg-black/90 place-items-center p-4">
+  <div id="lbCloseArea" class="absolute inset-0"></div>
+  <img id="lbImg" class="relative z-10 max-h-[90vh] max-w-[95vw] rounded-2xl object-contain">
+</div>
 
-<script src="config.js"></script><script src="app.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
 <script>
 let S;
-sb.auth.getSession().then(({data})=>{ if(data.session) start(); });
+let autoApproveEnabled = localStorage.getItem('warp_auto_approve') === '1';
+let autoApproveRunning = false;
+let loadRunning = false;
+let loadAgain = false;
+
+const $ = id => document.getElementById(id);
+
+$('loginBtn').addEventListener('click', login);
+$('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  location.reload();
+});
+$('autoToggle').addEventListener('click', toggleAutoApprove);
+$('addPkgBtn').addEventListener('click', addPkg);
+$('saveCfgBtn').addEventListener('click', saveCfg);
+
+$('lbCloseArea').addEventListener('click', closeZoom);
+$('lbImg').addEventListener('click', e => e.stopPropagation());
+
+$('queue').addEventListener('click', async e => {
+  const approveBtn = e.target.closest('[data-action="approve"]');
+  const rejectBtn = e.target.closest('[data-action="reject"]');
+
+  if (approveBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    await approve(approveBtn.dataset.id, approveBtn.dataset.minutes);
+    return;
+  }
+
+  if (rejectBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    await reject(rejectBtn.dataset.id);
+  }
+});
+
+$('live').addEventListener('click', async e => {
+  const killBtn = e.target.closest('[data-action="kill"]');
+
+  if (!killBtn) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  await kill(killBtn.dataset.id);
+});
+
+$('queue').addEventListener('click', e => {
+  const zoomBtn = e.target.closest('[data-action="zoom"]');
+  if (zoomBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoom(zoomBtn.dataset.url);
+  }
+});
+
+$('live').addEventListener('click', e => {
+  const zoomBtn = e.target.closest('[data-action="zoom"]');
+  if (zoomBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoom(zoomBtn.dataset.url);
+  }
+});
+
+sb.auth.getSession().then(({data}) => {
+  if (data.session) start();
+});
+
 async function login(){
-  const { error } = await sb.auth.signInWithPassword({ email: em.value, password: pw.value });
-  if(error) return err.textContent = error.message;
+  $('err').textContent = '';
+
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('em').value,
+    password: $('pw').value
+  });
+
+  if(error) {
+    $('err').textContent = error.message;
+    return;
+  }
+
   start();
 }
-async function start(){
-  login_.classList?.add('hidden');
-  document.getElementById('login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  S = await getSettings(); cVenue.value=S.venue; cPP.value=S.promptpay; drawCfg();
-  load();
-  sb.channel('adm').on('postgres_changes',{event:'*',schema:'public',table:'orders'},load).subscribe();
-  setInterval(load, 5000);
-}
-const login_ = {};
 
-function drawCfg(){ pkgEdit.innerHTML = S.packages.map((p,i)=>`<div class="flex gap-1.5 items-center text-xs">
-  <input type="number" value="${p.min}" onchange="ed(${i},'min',this.value)" class="w-14 bg-black/40 rounded-lg h-11 text-center"><span class="text-slate-500 text-[10px]">นาที</span>
-  <input type="number" value="${p.price}" onchange="ed(${i},'price',this.value)" class="w-16 bg-black/40 rounded-lg h-11 text-center"><span class="text-slate-500 text-[10px]">฿</span>
-  <input value="${esc(p.tag||'')}" placeholder="ป้าย" onchange="ed(${i},'tag',this.value)" class="flex-1 min-w-0 bg-black/40 rounded-lg px-2 h-11">
-  <button onclick="del(${i})" class="w-11 h-11 rounded-lg bg-red-500/20 text-red-300 font-bold">✕</button></div>`).join(''); }
-const ed=(i,f,v)=>{ S.packages[i][f] = f==='tag'?v:+v; };
-const del=i=>{ S.packages.splice(i,1); drawCfg(); };
-const addPkg=()=>{ S.packages.push({min:15,price:400,tag:''}); drawCfg(); };
+async function start(){
+  $('login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+
+  S = await getSettings();
+
+  if (!S) {
+    alert('ไม่สามารถโหลด settings ได้');
+    return;
+  }
+
+  $('cVenue').value = S.venue || '';
+  $('cPP').value = S.promptpay || '';
+
+  drawCfg();
+  updateAutoUI();
+  await load();
+
+  sb.channel('adm')
+    .on('postgres_changes', {
+      event:'*',
+      schema:'public',
+      table:'orders'
+    }, () => load())
+    .subscribe();
+
+  setInterval(() => load(), 5000);
+}
+
+function drawCfg(){
+  $('pkgEdit').innerHTML = (S.packages || []).map((p,i) => `
+    <div class="flex gap-1.5 items-center text-xs">
+      <input type="number" value="${p.min}" data-field="min" data-index="${i}"
+        class="pkg-field w-14 bg-black/40 rounded-lg h-11 text-center">
+      <span class="text-slate-500 text-[10px]">นาที</span>
+
+      <input type="number" value="${p.price}" data-field="price" data-index="${i}"
+        class="pkg-field w-16 bg-black/40 rounded-lg h-11 text-center">
+      <span class="text-slate-500 text-[10px]">฿</span>
+
+      <input value="${esc(p.tag || '')}" placeholder="ป้าย" data-field="tag" data-index="${i}"
+        class="pkg-field flex-1 min-w-0 bg-black/40 rounded-lg px-2 h-11">
+
+      <button type="button" data-action="delete-pkg" data-index="${i}"
+        class="w-11 h-11 rounded-lg bg-red-500/20 text-red-300 font-bold">
+        ✕
+      </button>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.pkg-field').forEach(input => {
+    input.addEventListener('change', () => {
+      const i = Number(input.dataset.index);
+      const field = input.dataset.field;
+      S.packages[i][field] = field === 'tag' ? input.value : +input.value;
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-pkg"]').forEach(btn => {
+    btn.addEventListener('click', () => del(Number(btn.dataset.index)));
+  });
+}
+
+function del(i){
+  S.packages.splice(i,1);
+  drawCfg();
+}
+
+function addPkg(){
+  S.packages.push({min:15,price:400,tag:''});
+  drawCfg();
+}
+
 async function saveCfg(){
-  const { error } = await sb.from('settings').update({ venue:cVenue.value, promptpay:cPP.value, packages:S.packages }).eq('id',1);
+  const { error } = await sb.from('settings')
+    .update({
+      venue:$('cVenue').value,
+      promptpay:$('cPP').value,
+      packages:S.packages
+    })
+    .eq('id',1);
+
   alert(error ? error.message : 'บันทึกแล้ว ✓');
 }
 
-const approve = async (id,min) => sb.from('orders').update({ status:'live', end_at:new Date(Date.now()+min*60000).toISOString() }).eq('id',id);
-const reject  = id => sb.from('orders').update({ status:'rejected' }).eq('id',id);
-const kill    = id => sb.from('orders').update({ status:'done', end_at:new Date().toISOString() }).eq('id',id);
-const zoom = u => { lbImg.src=u; lb.classList.remove('hidden'); };
+function updateAutoUI(){
+  const toggle = $('autoToggle');
+  const dot = $('autoDot');
+  const status = $('autoStatus');
+
+  if(autoApproveEnabled){
+    toggle.classList.remove('bg-slate-700');
+    toggle.classList.add('bg-emerald-500');
+    dot.classList.remove('left-1');
+    dot.classList.add('left-7');
+    status.textContent = 'เปิดอยู่ · อนุมัติรายการอัตโนมัติ';
+    status.className = 'text-[10px] text-emerald-400 mt-1';
+  } else {
+    toggle.classList.remove('bg-emerald-500');
+    toggle.classList.add('bg-slate-700');
+    dot.classList.remove('left-7');
+    dot.classList.add('left-1');
+    status.textContent = 'ปิดอยู่ · ต้องกดอนุมัติเอง';
+    status.className = 'text-[10px] text-slate-500 mt-1';
+  }
+}
+
+async function toggleAutoApprove(){
+  autoApproveEnabled = !autoApproveEnabled;
+
+  localStorage.setItem(
+    'warp_auto_approve',
+    autoApproveEnabled ? '1' : '0'
+  );
+
+  updateAutoUI();
+  await load();
+}
+
+async function approve(id,min){
+  const endAt = new Date(
+    Date.now() + Number(min) * 60000
+  ).toISOString();
+
+  const { data, error } = await sb.from('orders')
+    .update({
+      status:'live',
+      end_at:endAt
+    })
+    .eq('id',id)
+    .select('id,status,end_at');
+
+  if(error){
+    alert('❌ อนุมัติไม่สำเร็จ\n\n' + error.message);
+    return false;
+  }
+
+  if(!data || data.length === 0){
+    alert('❌ ไม่พบรายการหรือไม่มีสิทธิ์แก้ไขรายการนี้');
+    return false;
+  }
+
+  await load();
+  return true;
+}
+
+async function reject(id){
+  const ok = confirm('ต้องการยกเลิกรายการนี้ใช่หรือไม่?');
+  if(!ok) return false;
+
+  const { data, error } = await sb.from('orders')
+    .update({status:'rejected'})
+    .eq('id',id)
+    .select('id,status');
+
+  if(error){
+    alert('❌ ยกเลิกไม่สำเร็จ\n\n' + error.message);
+    return false;
+  }
+
+  if(!data || data.length === 0){
+    alert('❌ ไม่พบรายการหรือไม่มีสิทธิ์แก้ไขรายการนี้');
+    return false;
+  }
+
+  await load();
+  return true;
+}
+
+async function kill(id){
+  console.log('KILL CLICK:', id);
+
+  const ok = confirm('ต้องการลบรายการนี้ออกจากจอใช่หรือไม่?');
+  if(!ok) return false;
+
+  const { data, error } = await sb.from('orders')
+    .update({
+      status:'done',
+      end_at:new Date().toISOString()
+    })
+    .eq('id',id)
+    .select('id,status,end_at');
+
+  console.log('KILL RESULT:', data);
+  console.log('KILL ERROR:', error);
+
+  if(error){
+    alert('❌ ลบออกจากจอไม่สำเร็จ\n\n' + error.message);
+    return false;
+  }
+
+  if(!data || data.length === 0){
+    alert(
+      '❌ ลบออกจากจอไม่สำเร็จ\n\n' +
+      'Supabase ไม่ได้แก้ข้อมูลให้\n\n' +
+      'ให้ตรวจสอบ RLS Policy ของตาราง orders'
+    );
+    return false;
+  }
+
+  await load();
+  return true;
+}
+
+function zoom(u){
+  $('lbImg').src = u;
+  $('lb').classList.remove('hidden');
+  $('lb').classList.add('grid');
+}
+
+function closeZoom(){
+  $('lb').classList.add('hidden');
+  $('lb').classList.remove('grid');
+  $('lbImg').src = '';
+}
+
+async function processAutoApprove(pending){
+  if(!autoApproveEnabled || autoApproveRunning || !pending.length) return;
+
+  autoApproveRunning = true;
+
+  try {
+    for(const o of pending){
+      const { data:check, error } = await sb.from('orders')
+        .select('id,status,minutes')
+        .eq('id',o.id)
+        .maybeSingle();
+
+      if(error) {
+        console.error('AUTO APPROVE CHECK:', error);
+        continue;
+      }
+
+      if(!check || check.status !== 'pending') continue;
+
+      const ok = await approve(check.id, check.minutes);
+      if(!ok) break;
+    }
+  } finally {
+    autoApproveRunning = false;
+  }
+}
 
 async function load(){
-  const { data } = await sb.from('orders').select('*').in('status',['pending','live']).order('created_at');
-  const q = data.filter(o=>o.status==='pending'), lv = data.filter(o=>o.status==='live');
-  sQ.textContent=q.length; sL.textContent=lv.length;
-  sSum.textContent = data.reduce((s,o)=>s+Number(o.price),0).toLocaleString();
+  if(loadRunning){
+    loadAgain = true;
+    return;
+  }
 
-  const card=(o,btn)=>`<div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-    <div class="relative aspect-[3/4]"><img src="${o.image_url}" onclick="zoom('${o.image_url}')" class="absolute inset-0 w-full h-full object-cover">
-      <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[9px] font-black">${o.minutes} นาที</span></div>
-    <div class="p-2.5 text-[11px]"><b class="text-xs flex items-center gap-1 truncate"><img src="${logoUrl(o.platform)}" class="w-3.5 h-3.5 shrink-0" alt="">@${esc(o.handle)}</b>
-      <p class="text-slate-400 truncate h-4">${esc(o.message)}</p>
-      <p class="text-emerald-400">${money(o.amount)} ฿</p>
-      ${o.slip_url?`<button onclick="zoom('${o.slip_url}')" class="mt-1 w-full py-1.5 rounded-lg bg-white/10 text-[10px]">🔍 ดูสลิป</button>`:''}
-      <div class="flex gap-1.5 mt-2">${btn}</div></div></div>`;
+  loadRunning = true;
 
-  queue.innerHTML = q.map(o=>card(o,
-    `<button onclick="approve('${o.id}',${o.minutes})" class="flex-1 h-10 rounded-xl bg-emerald-500 font-black text-[11px]">อนุมัติ</button>
-     <button onclick="reject('${o.id}')" class="w-10 h-10 rounded-xl bg-white/10">✕</button>`)).join('')
-     || '<p class="col-span-full text-slate-600 text-xs py-4">ยังไม่มีคิว</p>';
-  live.innerHTML = lv.map(o=>card(o,
-    `<button onclick="kill('${o.id}')" class="flex-1 h-10 rounded-xl bg-red-500/80 font-black text-[11px]">ลบออกจากจอ</button>`)).join('')
-     || '<p class="col-span-full text-slate-600 text-xs py-4">จอว่าง</p>';
+  try {
+    const { data, error } = await sb.from('orders')
+      .select('*')
+      .in('status',['pending','live'])
+      .order('created_at');
+
+    if(error){
+      console.error('LOAD ORDERS ERROR:', error);
+      return;
+    }
+
+    const q = data.filter(o => o.status === 'pending');
+
+    if(autoApproveEnabled && q.length && !autoApproveRunning){
+      await processAutoApprove(q);
+
+      const { data:newData, error:newError } = await sb.from('orders')
+        .select('*')
+        .in('status',['pending','live'])
+        .order('created_at');
+
+      if(newError){
+        console.error('RELOAD AFTER AUTO ERROR:', newError);
+        renderOrders(data);
+      } else {
+        renderOrders(newData || []);
+      }
+    } else {
+      renderOrders(data);
+    }
+  } finally {
+    loadRunning = false;
+
+    if(loadAgain){
+      loadAgain = false;
+      setTimeout(() => load(), 0);
+    }
+  }
 }
-  
+
+function renderOrders(data){
+  const q = data.filter(o => o.status === 'pending');
+  const lv = data.filter(o => o.status === 'live');
+
+  $('sQ').textContent = q.length;
+  $('sL').textContent = lv.length;
+
+  $('sSum').textContent = data
+    .reduce((s,o) => s + Number(o.price || 0), 0)
+    .toLocaleString();
+
+  const card = (o,btn) => `
+    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      <div class="relative aspect-[3/4]">
+        <img src="${o.image_url}"
+          data-action="zoom"
+          data-url="${esc(o.image_url || '')}"
+          class="absolute inset-0 w-full h-full object-cover cursor-pointer"
+          alt="">
+
+        <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[9px] font-black">
+          ${o.minutes} นาที
+        </span>
+      </div>
+
+      <div class="p-2.5 text-[11px] relative z-20">
+        <b class="text-xs flex items-center gap-1 truncate">
+          <img src="${logoUrl(o.platform)}" class="w-3.5 h-3.5 shrink-0" alt="">
+          @${esc(o.handle)}
+        </b>
+
+        <p class="text-slate-400 truncate h-4">${esc(o.message)}</p>
+        <p class="text-emerald-400">${money(o.amount)} ฿</p>
+
+        ${o.slip_url ? `
+          <button type="button"
+            data-action="zoom"
+            data-url="${esc(o.slip_url)}"
+            class="mt-1 w-full py-1.5 rounded-lg bg-white/10 text-[10px]">
+            🔍 ดูสลิป
+          </button>
+        ` : ''}
+
+        <div class="flex gap-1.5 mt-2">
+          ${btn}
+        </div>
+      </div>
+    </div>
+  `;
+
+  $('queue').innerHTML = q.map(o => card(o, `
+    <button type="button"
+      data-action="approve"
+      data-id="${esc(o.id)}"
+      data-minutes="${Number(o.minutes) || 0}"
+      class="flex-1 h-10 rounded-xl bg-emerald-500 font-black text-[11px]">
+      อนุมัติ
+    </button>
+
+    <button type="button"
+      data-action="reject"
+      data-id="${esc(o.id)}"
+      class="w-10 h-10 rounded-xl bg-white/10">
+      ✕
+    </button>
+  `)).join('') || '<p class="col-span-full text-slate-600 text-xs py-4">ยังไม่มีคิว</p>';
+
+  $('live').innerHTML = lv.map(o => card(o, `
+    <button type="button"
+      data-action="kill"
+      data-id="${esc(o.id)}"
+      style="position:relative;z-index:9999;pointer-events:auto;cursor:pointer;"
+      class="flex-1 h-12 rounded-xl bg-red-500/80 font-black text-[11px]">
+      ลบออกจากจอ
+    </button>
+  `)).join('') || '<p class="col-span-full text-slate-600 text-xs py-4">จอว่าง</p>';
+}
+
 function logoUrl(p){
-  const map = { ig:'instagram/E4405F', fb:'facebook/1877F2', tt:'tiktok/ffffff', line:'line/06C755' };
+  const map = {
+    ig:'instagram/E4405F',
+    fb:'facebook/1877F2',
+    tt:'tiktok/ffffff',
+    line:'line/06C755'
+  };
+
   return `https://cdn.simpleicons.org/${map[p] || 'instagram/E4405F'}`;
 }
-
 </script>
-</body></html>
+</body>
+</html>
