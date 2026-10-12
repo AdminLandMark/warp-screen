@@ -507,7 +507,7 @@ function renderOrders(data){
       <div class="p-2.5 text-[11px] relative z-20">
         <b class="text-xs flex items-center gap-1 truncate">
           <img src="${logoUrl(o.platform)}" class="w-3.5 h-3.5 shrink-0" alt="">
-          @${esc(o.handle)}
+          ${esc(o.handle)}
         </b>
 
         <p class="text-slate-400 truncate h-4">${esc(o.message)}</p>
@@ -559,13 +559,19 @@ function renderOrders(data){
 
 function logoUrl(p){
   const map = {
+    /* ค่าที่หน้า screen.html บันทึกลงฐานข้อมูล */
+    instagram:'instagram/E4405F',
+    facebook:'facebook/1877F2',
+    tiktok:'tiktok/ffffff',
+    line:'line/06C755',
+
+    /* รองรับข้อมูลเก่าที่อาจใช้รหัสย่อ */
     ig:'instagram/E4405F',
     fb:'facebook/1877F2',
-    tt:'tiktok/ffffff',
-    line:'line/06C755'
+    tt:'tiktok/ffffff'
   };
 
-  return `https://cdn.simpleicons.org/${map[p] || 'instagram/E4405F'}`;
+  return `https://cdn.simpleicons.org/${map[String(p || '').toLowerCase()] || 'instagram/E4405F'}`;
 }
 </script>
 </body>
