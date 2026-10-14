@@ -447,16 +447,48 @@ async function approve(id,min){
 }
 
 async function reject(id){
-  const ok = confirm('ต้องการยกเลิกรายการนี้ใช่หรือไม่?');
+  const reasons = [
+    'รูปโป๊/ภาพทางเพศมากเกินไป',
+    'ภาพหรือข้อความสื่อถึงศาสนาอย่างไม่เหมาะสม',
+    'ภาพหรือข้อความเกี่ยวกับการเมือง',
+    'คำหยาบคาย/ดูหมิ่น/คุกคาม',
+    'ภาพหรือข้อความไม่เหมาะสมตามกฎของร้าน',
+    'อื่น ๆ (ให้ Admin ระบุเอง)'
+  ];
+  const menu = reasons.map((r, i) => `${i + 1}. ${r}`).join('\n');
+  const choice = prompt('เลือกเหตุผลที่ยกเลิกรายการนี้\n\n' + menu + '\n\nกรอกหมายเลข 1-' + reasons.length + ':');
+  if (choice === null) return false;
+  const n = Number(choice.trim());
+  if (!Number.isInteger(n) || n < 1 || n > reasons.length) {
+    alert('กรุณากรอกหมายเลขเหตุผลให้ถูกต้อง');
+    return false;
+  }
+
+  let reason = reasons[n - 1];
+  if (n === reasons.length) {
+    const custom = prompt('ระบุเหตุผลที่ยกเลิก:');
+    if (custom === null) return false;
+    reason = custom.trim();
+    if (!reason) {
+      alert('กรุณาระบุเหตุผลก่อนยกเลิก');
+      return false;
+    }
+  }
+
+  const ok = confirm(`ยืนยันยกเลิกรายการนี้?\nเหตุผล: ${reason}\n\nยอดรายการนี้จะไม่ถูกนับรวมในยอดเงิน`);
   if(!ok) return false;
 
   const { data, error } = await sb.from('orders')
-    .update({status:'rejected'})
+    .update({
+      status: 'rejected',
+      cancel_reason: reason,
+      cancelled_at: new Date().toISOString()
+    })
     .eq('id',id)
-    .select('id,status');
+    .select('id,status,cancel_reason,cancelled_at');
 
   if(error){
-    alert('❌ ยกเลิกไม่สำเร็จ\n\n' + error.message);
+    alert('❌ ยกเลิกไม่สำเร็จ\n\n' + error.message + '\n\nหากแจ้งว่าไม่พบคอลัมน์ cancel_reason หรือ cancelled_at ให้รัน SQL ที่แนบมาใน Supabase SQL Editor');
     return false;
   }
 
@@ -466,6 +498,7 @@ async function reject(id){
   }
 
   await load();
+  await loadHistory();
   return true;
 }
 
@@ -809,6 +842,7 @@ async function loadHistory() {
               <span class="text-xs font-bold ${statusColor}">${statusText}</span>
             </div>
             <p class="text-xs text-slate-300 mt-2 break-words">${esc(o.message || '-')}</p>
+            ${String(o.status || '').toLowerCase() === 'rejected' ? `<div class="mt-2 rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-xs text-red-200"><strong>❌ ถูกยกเลิก</strong><p class="mt-1">เหตุผล: ${esc(o.cancel_reason || 'ไม่มีข้อมูลเหตุผล (รายการเก่า)')}</p><p class="text-[10px] text-red-200/70 mt-1">เวลายกเลิก: ${esc(formatDateTime(o.cancelled_at))}</p><p class="text-[10px] mt-1">ไม่นับรวมยอดเงิน</p></div>` : ''}
             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
               <span class="text-emerald-300 font-black">ยอดเงิน ฿${Number(o.amount ?? o.price ?? 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               <span class="text-slate-400">เวลา ${Number(o.minutes) || 0} นาที</span>
