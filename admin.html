@@ -678,12 +678,30 @@ async function loadHistory() {
   }
 
   const all = data || [];
-  const rows = all.filter(o => o.created_at && localDateString(new Date(o.created_at)) === selectedDate)
-                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-  // นับยอดที่มีการส่งสลิปแล้วหรือผ่านขั้นตอนอนุมัติ ไม่รวม unpaid/rejected
+  // ใช้ช่วงเวลาเริ่มต้น/สิ้นสุดของวันตามเวลาท้องถิ่น แทนการเทียบข้อความวันที่
+  // เพื่อไม่ให้รายการคลาดเคลื่อนเพราะเขตเวลา/รูปแบบ timestamp จาก Supabase
+  const dayStart = new Date(`${selectedDate}T00:00:00`);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const startMs = dayStart.getTime();
+  const endMs = dayEnd.getTime();
+
+  const rows = all.filter(o => {
+    const stamp = o.created_at || o.updated_at || o.end_at;
+    if (!stamp) return false;
+    const ms = new Date(stamp).getTime();
+    return Number.isFinite(ms) && ms >= startMs && ms < endMs;
+  }).sort((a, b) => {
+    const ta = new Date(a.created_at || a.updated_at || a.end_at || 0).getTime();
+    const tb = new Date(b.created_at || b.updated_at || b.end_at || 0).getTime();
+    return ta - tb;
+  });
+
+  // นับยอดรายการที่ส่งสลิปแล้วหรืออนุมัติแล้ว โดยใช้ amount ก่อน price
   const eligible = rows.filter(o =>
-    ['pending', 'live', 'done'].includes(o.status) && (o.slip_url || o.status === 'live' || o.status === 'done')
+    ['pending', 'live', 'done'].includes(String(o.status || '').toLowerCase()) &&
+    (o.slip_url || ['live', 'done'].includes(String(o.status || '').toLowerCase()))
   );
   const total = eligible.reduce((sum, o) => sum + Number(o.amount ?? o.price ?? 0), 0);
 
@@ -696,7 +714,12 @@ async function loadHistory() {
   $('historyMessage').textContent = `วันที่ ${selectedDate} · เรียงจากรายการแรกไปยังรายการล่าสุด · พบ ${rows.length} รายการ`;
 
   if (!rows.length) {
-    $('historyList').innerHTML = '<p class="text-xs text-slate-500 py-6 text-center">ไม่มีรายการในวันที่เลือก</p>';
+    const latest = all.length
+      ? (all.map(o => o.created_at || o.updated_at || o.end_at).filter(Boolean).sort().slice(-1)[0] || '')
+      : '';
+    const latestText = latest ? ` · เวลารายการล่าสุดที่อ่านได้ ${formatDateTime(latest)}` : '';
+    $('historyMessage').textContent = `วันที่ ${selectedDate} · ไม่พบรายการของวันนี้ · ระบบอ่านข้อมูลจากฐานข้อมูลได้ ${all.length} รายการ${latestText}`;
+    $('historyList').innerHTML = '<p class="text-xs text-slate-500 py-6 text-center">ไม่มีรายการในวันที่เลือก หากด้านบนบอกว่าอ่านได้ 0 รายการ ให้ตรวจสอบสิทธิ์อ่านข้อมูล (RLS) ของตาราง orders</p>';
     return;
   }
 
