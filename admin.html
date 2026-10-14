@@ -90,6 +90,46 @@ button{touch-action:manipulation}
 
   <h3 class="font-black text-sm mt-7 mb-2.5">🔴 กำลังขึ้นจอ</h3>
   <div id="live" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5"></div>
+
+  <!-- เพิ่มใหม่: รายงานยอดเงินและประวัติลูกค้ารายวัน -->
+  <section id="dailyHistory" class="mt-8 rounded-3xl bg-white/5 border border-white/10 p-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div>
+        <h3 class="font-black text-sm">📊 ยอดเงินและประวัติรายการ</h3>
+        <p class="text-[10px] text-slate-400 mt-1">เรียงตามเวลาที่ส่งรายการก่อน → หลัง</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="historyDate" type="date"
+          class="bg-black/40 border border-white/10 rounded-xl px-3 h-11 text-sm">
+        <button id="historyRefresh" type="button"
+          class="h-11 px-3 rounded-xl bg-white/10 text-xs font-bold">รีเฟรช</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+      <div class="rounded-2xl bg-black/20 border border-white/5 p-3">
+        <p class="text-[10px] text-slate-400">ยอดรายการที่ส่งสลิป/อนุมัติแล้ว</p>
+        <p id="historyTotal" class="text-lg font-black text-emerald-400">฿0.00</p>
+      </div>
+      <div class="rounded-2xl bg-black/20 border border-white/5 p-3">
+        <p class="text-[10px] text-slate-400">จำนวนรายการ</p>
+        <p id="historyCount" class="text-lg font-black">0</p>
+      </div>
+      <div class="rounded-2xl bg-black/20 border border-white/5 p-3">
+        <p class="text-[10px] text-slate-400">รออนุมัติ</p>
+        <p id="historyPending" class="text-lg font-black text-amber-300">0</p>
+      </div>
+      <div class="rounded-2xl bg-black/20 border border-white/5 p-3">
+        <p class="text-[10px] text-slate-400">กำลังขึ้นจอ</p>
+        <p id="historyLive" class="text-lg font-black text-fuchsia-400">0</p>
+      </div>
+    </div>
+
+    <p id="historyMessage" class="text-xs text-slate-400 mb-3"></p>
+    <div id="historyList" class="space-y-3">
+      <p class="text-xs text-slate-500 py-4">กำลังโหลดประวัติ…</p>
+    </div>
+  </section>
 </main>
 
 <div id="lb" class="hidden fixed inset-0 z-[99999] bg-black/90 place-items-center p-4">
@@ -120,6 +160,32 @@ $('saveCfgBtn').addEventListener('click', saveCfg);
 
 $('lbCloseArea').addEventListener('click', closeZoom);
 $('lbImg').addEventListener('click', e => e.stopPropagation());
+
+// เพิ่มใหม่: ตัวกรองวันที่และรีเฟรชประวัติ
+$('historyDate').value = localDateString(new Date());
+$('historyDate').addEventListener('change', loadHistory);
+$('historyRefresh').addEventListener('click', loadHistory);
+
+$('historyList').addEventListener('click', async e => {
+  const zoomBtn = e.target.closest('[data-history-action="zoom"]');
+  const promoteBtn = e.target.closest('[data-history-action="promote"]');
+
+  if (zoomBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    zoom(zoomBtn.dataset.url);
+    return;
+  }
+
+  if (promoteBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = confirm('ต้องการนำรายการนี้ขึ้นจอใช่หรือไม่?');
+    if (!ok) return;
+    const success = await approve(promoteBtn.dataset.id, promoteBtn.dataset.minutes);
+    if (success) await loadHistory();
+  }
+});
 
 $('queue').addEventListener('click', async e => {
   const approveBtn = e.target.closest('[data-action="approve"]');
@@ -205,6 +271,7 @@ async function start(){
   drawCfg();
   updateAutoUI();
   await load();
+  await loadHistory();
 
   sb.channel('adm')
     .on('postgres_changes', {
@@ -214,7 +281,10 @@ async function start(){
     }, () => load())
     .subscribe();
 
-  setInterval(() => load(), 5000);
+  setInterval(() => {
+    load();
+    loadHistory();
+  }, 5000);
 }
 
 function drawCfg(){
@@ -555,6 +625,128 @@ function renderOrders(data){
       ลบออกจากจอ
     </button>
   `)).join('') || '<p class="col-span-full text-slate-600 text-xs py-4">จอว่าง</p>';
+}
+
+// ================================
+// รายงานยอดเงินและประวัติรายการ
+// ================================
+function localDateString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function historyStatus(status) {
+  const map = {
+    unpaid: ['ยังไม่ส่งสลิป', 'text-slate-300'],
+    pending: ['รออนุมัติ', 'text-amber-300'],
+    live: ['กำลังขึ้นจอ', 'text-emerald-300'],
+    done: ['จบรายการ/นำออกจากจอ', 'text-slate-300'],
+    rejected: ['ยกเลิก', 'text-red-300']
+  };
+  return map[status] || [status || 'ไม่ทราบสถานะ', 'text-slate-300'];
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleString('th-TH', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+}
+
+async function loadHistory() {
+  if (!$('historyList')) return;
+
+  $('historyMessage').textContent = 'กำลังโหลดข้อมูล…';
+  const selectedDate = $('historyDate').value || localDateString(new Date());
+
+  const { data, error } = await sb.from('orders')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('LOAD HISTORY ERROR:', error);
+    $('historyMessage').textContent = 'โหลดประวัติไม่สำเร็จ: ' + error.message;
+    $('historyList').innerHTML =
+      '<p class="text-sm text-red-300 py-4">ไม่สามารถโหลดประวัติได้ กรุณาตรวจสอบสิทธิ์อ่านข้อมูล (RLS) ของตาราง orders</p>';
+    return;
+  }
+
+  const all = data || [];
+  const rows = all.filter(o => o.created_at && localDateString(new Date(o.created_at)) === selectedDate)
+                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  // นับยอดที่มีการส่งสลิปแล้วหรือผ่านขั้นตอนอนุมัติ ไม่รวม unpaid/rejected
+  const eligible = rows.filter(o =>
+    ['pending', 'live', 'done'].includes(o.status) && (o.slip_url || o.status === 'live' || o.status === 'done')
+  );
+  const total = eligible.reduce((sum, o) => sum + Number(o.amount ?? o.price ?? 0), 0);
+
+  $('historyTotal').textContent = '฿' + total.toLocaleString('th-TH', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+  $('historyCount').textContent = rows.length.toLocaleString('th-TH');
+  $('historyPending').textContent = rows.filter(o => o.status === 'pending').length;
+  $('historyLive').textContent = rows.filter(o => o.status === 'live').length;
+  $('historyMessage').textContent = `วันที่ ${selectedDate} · เรียงจากรายการแรกไปยังรายการล่าสุด · พบ ${rows.length} รายการ`;
+
+  if (!rows.length) {
+    $('historyList').innerHTML = '<p class="text-xs text-slate-500 py-6 text-center">ไม่มีรายการในวันที่เลือก</p>';
+    return;
+  }
+
+  $('historyList').innerHTML = rows.map((o, i) => {
+    const [statusText, statusColor] = historyStatus(o.status);
+    const canPromote = o.status !== 'live' && o.status !== 'unpaid' && o.status !== 'rejected';
+    const image = o.image_url
+      ? `<button type="button" data-history-action="zoom" data-url="${esc(o.image_url)}" class="block w-full text-left">
+           <img src="${esc(o.image_url)}" alt="รูปที่ลูกค้าอัปโหลด" loading="lazy"
+             class="w-24 h-28 object-cover rounded-xl bg-black/30 border border-white/10">
+         </button>`
+      : `<div class="w-24 h-28 rounded-xl bg-black/20 grid place-items-center text-[10px] text-slate-500">ไม่มีรูป</div>`;
+    const slip = o.slip_url
+      ? `<button type="button" data-history-action="zoom" data-url="${esc(o.slip_url)}"
+           class="mt-2 px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-200 text-xs font-bold">🔍 ดูสลิป</button>`
+      : `<p class="mt-2 text-[10px] text-slate-500">ยังไม่มีสลิป</p>`;
+    const promote = canPromote
+      ? `<button type="button" data-history-action="promote" data-id="${esc(o.id)}"
+           data-minutes="${Number(o.minutes) || 0}"
+           class="px-3 py-2 rounded-lg bg-emerald-500 text-white text-xs font-black">ขึ้นจอ</button>`
+      : '';
+    return `
+      <article class="rounded-2xl bg-black/20 border border-white/10 p-3">
+        <div class="flex gap-3">
+          <div class="shrink-0">
+            ${image}
+            <p class="text-[10px] text-center text-slate-500 mt-1">ลำดับ ${i + 1}</p>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-black text-sm break-all">${esc(o.handle || 'ไม่ระบุชื่อ')}</p>
+                <p class="text-[10px] text-slate-400">${esc(o.platform || '-')} · ${formatDateTime(o.created_at)}</p>
+              </div>
+              <span class="text-xs font-bold ${statusColor}">${statusText}</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-2 break-words">${esc(o.message || '-')}</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
+              <span class="text-emerald-300 font-black">ยอดเงิน ฿${Number(o.amount ?? o.price ?? 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span class="text-slate-400">เวลา ${Number(o.minutes) || 0} นาที</span>
+              <span class="text-slate-500">Order #${esc(String(o.id || '').slice(0, 8))}</span>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3">
+              ${slip}
+              ${promote}
+            </div>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
 }
 
 function logoUrl(p){
