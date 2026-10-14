@@ -378,7 +378,48 @@ async function toggleAutoApprove(){
   await load();
 }
 
+// ตรวจคำเสี่ยงเบื้องต้นเพื่อเตือนสตาฟก่อนขึ้นจอ (แก้รายการคำได้ตามนโยบายร้าน)
+const RISK_WORDS = [
+  'ไอ้เหี้ย','ไอ้สัส','ไอ้ควาย','ไอ้โง่','ควย','เหี้ย','สัส','เย็ด','หี','แตด',
+  'แม่ง','มึง','กู','ควย','ฆ่ามึง','ตายซะ','อีดอก','อีเหี้ย','ไอ้เวร'
+];
+function findRiskWords(value){
+  const text = String(value || '').toLowerCase().replace(/\s+/g, '');
+  return [...new Set(RISK_WORDS.filter(word => text.includes(word.replace(/\s+/g, '').toLowerCase())))];
+}
+
 async function approve(id,min){
+  // ถ้ามีช่องแก้ข้อความในคิว ให้บันทึกข้อความก่อนอนุมัติ
+  const editor = document.querySelector(`[data-message-editor="${CSS.escape(String(id))}"]`);
+  if (editor) {
+    const newMessage = editor.value.trim();
+    if (newMessage.length > 40) {
+      alert('ข้อความต้องไม่เกิน 40 ตัวอักษร');
+      return false;
+    }
+    const { data: current, error: readError } = await sb.from('orders')
+      .select('id,message,original_message,status')
+      .eq('id', id)
+      .maybeSingle();
+    if (readError || !current) {
+      alert('อ่านข้อความเดิมไม่สำเร็จ: ' + (readError?.message || 'ไม่พบรายการ'));
+      return false;
+    }
+    if (newMessage !== String(current.message || '')) {
+      const original = current.original_message || current.message || '';
+      const { error: saveError } = await sb.from('orders')
+        .update({ message: newMessage, original_message: original })
+        .eq('id', id);
+      if (saveError) {
+        alert('บันทึกข้อความที่แก้ไม่สำเร็จ\n\n' + saveError.message + '\n\nตรวจสอบว่ามีคอลัมน์ original_message ในตาราง orders แล้วหรือยัง');
+        return false;
+      }
+    }
+  }
+
+  const currentText = editor ? editor.value.trim() : '';
+  const risks = findRiskWords(currentText);
+  if (risks.length && !confirm('⚠️ พบคำที่อาจไม่เหมาะสม: ' + risks.join(', ') + '\n\nตรวจสอบข้อความแล้ว ต้องการอนุมัติต่อหรือไม่?')) return false;
   const endAt = new Date(
     Date.now() + Number(min) * 60000
   ).toISOString();
@@ -561,7 +602,7 @@ function renderOrders(data){
     .reduce((s,o) => s + Number(o.price || 0), 0)
     .toLocaleString();
 
-  const card = (o,btn) => `
+  const card = (o,btn,isPending=false) => `
     <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
       <div class="relative aspect-[3/4]">
         <img src="${o.image_url}"
@@ -582,7 +623,15 @@ function renderOrders(data){
         </b>
 
         <p class="text-slate-400 truncate h-4">${esc(o.message)}</p>
-        <p class="text-emerald-400">${money(o.amount)} ฿</p>
+        ${isPending ? `
+          <label class="block mt-2 text-[10px] text-slate-400">แก้ข้อความก่อนอนุมัติ (ไม่เกิน 40 ตัวอักษร)
+            <textarea data-message-editor="${esc(o.id)}" maxlength="40" rows="2"
+              class="w-full mt-1 bg-black/40 border border-white/10 rounded-lg p-2 text-[11px] resize-y"
+              placeholder="แก้ข้อความให้เหมาะสมก่อนขึ้นจอ">${esc(o.message || '')}</textarea>
+          </label>
+          ${findRiskWords(o.message).length ? `<p class="mt-1 text-[10px] text-amber-300">⚠️ ตรวจพบคำเสี่ยง: ${esc(findRiskWords(o.message).join(', '))}</p>` : ''}
+        ` : ''}
+        <p class="text-emerald-400 mt-1">${money(o.amount)} ฿</p>
 
         ${o.slip_url ? `
           <button type="button"
@@ -615,7 +664,7 @@ function renderOrders(data){
       class="w-10 h-10 rounded-xl bg-white/10">
       ✕
     </button>
-  `)).join('') || '<p class="col-span-full text-slate-600 text-xs py-4">ยังไม่มีคิว</p>';
+  `, true)).join('') || '<p class="col-span-full text-slate-600 text-xs py-4">ยังไม่มีคิว</p>';
 
   $('live').innerHTML = lv.map(o => card(o, `
     <button type="button"
