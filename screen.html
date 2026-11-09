@@ -1430,10 +1430,10 @@ setInterval(()=>{
 /* =========================================================
    ลำดับอนุมัติจากข้อมูลเดิม
 
-   admin เดิมบันทึก end_at = เวลาที่อนุมัติ + minutes
+   ระบบบันทึก end_at = เวลาเริ่มต้น + duration_seconds
    ดังนั้นเราสามารถย้อนหาเวลาอนุมัติได้จาก
 
-   end_at - minutes
+   end_at - duration_seconds
 
    โดยไม่ต้องเพิ่ม column ใหม่ใน Supabase
    ========================================================= */
@@ -1447,12 +1447,12 @@ function approvedTime(o){
   const end =
     o.end_at ? new Date(o.end_at).getTime() : NaN;
 
-  const minutes =
-    Number(o.minutes) || 0;
+  const durationSeconds =
+    getOrderDurationSeconds(o);
 
   if(Number.isFinite(end)){
 
-    return end - (minutes * 60000);
+    return end - (durationSeconds * 1000);
 
   }
 
@@ -1552,12 +1552,12 @@ async function fetchLiveOrders(){
    ========================================================= */
 async function startCardTimer(o){
 
-  const minutes =
-    Number(o.minutes) || 0;
+  const durationSeconds =
+    getOrderDurationSeconds(o);
 
   const endAt =
     new Date(
-      Date.now() + minutes * 60000
+      Date.now() + durationSeconds * 1000
     ).toISOString();
 
 

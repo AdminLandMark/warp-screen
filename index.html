@@ -863,6 +863,9 @@ function drawPkgs(){
         const free =
           Number(p.price) === 0;
 
+        const durationSeconds =
+          getPackageDurationSeconds(p);
+
 
         return `
 
@@ -927,13 +930,13 @@ function drawPkgs(){
                      font-black
                      leading-none"
             >
-              ${p.min}
+              ${formatDuration(durationSeconds)}
 
               <span
                 class="text-[11px]
                        font-normal
                        text-slate-400">
-                นาที
+                นาที:วินาที
               </span>
 
             </div>
@@ -965,7 +968,9 @@ function drawPkgs(){
                 free
                   ? 'ไม่ต้องชำระเงิน'
                   : '≈ ' +
-                    (p.price/p.min).toFixed(0) +
+                    (durationSeconds > 0
+                      ? (p.price/(durationSeconds/60)).toFixed(0)
+                      : '0') +
                     ' ฿/นาที'
               }
             </div>
@@ -989,6 +994,9 @@ function setPkg(i,el){
   pkg = {
     ...S.packages[i]
   };
+
+  pkg.duration_seconds =
+    getPackageDurationSeconds(pkg);
 
 
   pkg.free =
@@ -1054,7 +1062,7 @@ function setPkg(i,el){
         </span>
 
         <b>
-          ${pkg.min} นาที
+          ${formatDuration(pkg.duration_seconds)} นาที:วินาที
         </b>
 
       </div>
@@ -1096,7 +1104,7 @@ function setPkg(i,el){
         </span>
 
         <b>
-          ${pkg.min} นาที
+          ${formatDuration(pkg.duration_seconds)} นาที:วินาที
         </b>
 
       </div>
@@ -1290,6 +1298,9 @@ async function n2(){
 
       minutes:
         pkg.min,
+
+      duration_seconds:
+        pkg.duration_seconds ?? getPackageDurationSeconds(pkg),
 
       price:
         pkg.price,
@@ -1793,7 +1804,7 @@ function paint(o){
           </span>
 
           <span>
-            ${o.minutes} นาที
+            ${formatDuration(getOrderDurationSeconds(o))} นาที:วินาที
           </span>
 
         </div>

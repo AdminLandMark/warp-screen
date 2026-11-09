@@ -30,6 +30,35 @@ const money = n =>
 
 
 /* =========================================================
+   DURATION HELPERS
+   รองรับแพ็กเกจแบบนาที + วินาที และข้อมูลออเดอร์แบบเดิม
+========================================================= */
+
+function getPackageDurationSeconds(p){
+  const minutes = Number(p?.min) || 0;
+  const seconds = Number(p?.sec) || 0;
+  return Math.max(0, Math.round(minutes * 60 + seconds));
+}
+
+function getOrderDurationSeconds(o){
+  if(o?.duration_seconds !== null &&
+     o?.duration_seconds !== undefined &&
+     Number.isFinite(Number(o.duration_seconds))){
+    return Math.max(0, Math.round(Number(o.duration_seconds)));
+  }
+
+  return Math.max(0, Math.round((Number(o?.minutes) || 0) * 60));
+}
+
+function formatDuration(seconds){
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const minutes = Math.floor(total / 60);
+  const remain = total % 60;
+  return `${minutes}:${String(remain).padStart(2,'0')}`;
+}
+
+
+/* =========================================================
    SETTINGS
 ========================================================= */
 

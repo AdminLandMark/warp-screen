@@ -63,7 +63,7 @@ button{touch-action:manipulation}
     <div class="mt-3 rounded-xl bg-black/20 border border-white/5 p-3">
       <p class="text-[10px] text-slate-400 leading-relaxed">
         เมื่อเปิด ระบบจะอนุมัติรายการที่เข้ามาใหม่ให้อัตโนมัติ
-        และนำขึ้นจอทันทีตามจำนวนนาทีของรายการ
+        และเริ่มนับเวลาตามแพ็กเกจที่กำหนด (นาที:วินาที)
       </p>
     </div>
   </div>
@@ -188,7 +188,7 @@ $('historyList').addEventListener('click', async e => {
     e.stopPropagation();
     const ok = confirm('ต้องการนำรายการนี้ขึ้นจอใช่หรือไม่?');
     if (!ok) return;
-    const success = await approve(promoteBtn.dataset.id, promoteBtn.dataset.minutes);
+    const success = await approve(promoteBtn.dataset.id);
     if (success) await loadHistory();
   }
 });
@@ -200,7 +200,7 @@ $('queue').addEventListener('click', async e => {
   if (approveBtn) {
     e.preventDefault();
     e.stopPropagation();
-    await approve(approveBtn.dataset.id, approveBtn.dataset.minutes);
+    await approve(approveBtn.dataset.id);
     return;
   }
 
@@ -275,6 +275,8 @@ async function start(){
   $('cPP').value = S.promptpay || '';
   $('cCutoff').value = S.upload_cutoff_time || '22:50';
 
+  S.packages = (S.packages || []).map(p => ({...p, sec:Number(p.sec) || 0}));
+
   drawCfg();
   updateAutoUI();
   await load();
@@ -298,9 +300,13 @@ async function start(){
 function drawCfg(){
   $('pkgEdit').innerHTML = (S.packages || []).map((p,i) => `
     <div class="flex gap-1.5 items-center text-xs">
-      <input type="number" value="${p.min}" data-field="min" data-index="${i}"
-        class="pkg-field w-14 bg-black/40 rounded-lg h-11 text-center">
+      <input type="number" min="0" step="1" value="${Number(p.min) || 0}" data-field="min" data-index="${i}"
+        class="pkg-field w-12 bg-black/40 rounded-lg h-11 text-center">
       <span class="text-slate-500 text-[10px]">นาที</span>
+
+      <input type="number" min="0" max="59" step="1" value="${Number(p.sec) || 0}" data-field="sec" data-index="${i}"
+        class="pkg-field w-12 bg-black/40 rounded-lg h-11 text-center">
+      <span class="text-slate-500 text-[10px]">วินาที</span>
 
       <input type="number" value="${p.price}" data-field="price" data-index="${i}"
         class="pkg-field w-16 bg-black/40 rounded-lg h-11 text-center">
@@ -320,7 +326,15 @@ function drawCfg(){
     input.addEventListener('change', () => {
       const i = Number(input.dataset.index);
       const field = input.dataset.field;
-      S.packages[i][field] = field === 'tag' ? input.value : +input.value;
+      if(field === 'tag') {
+        S.packages[i][field] = input.value;
+      } else if(field === 'sec') {
+        S.packages[i][field] = Math.min(59, Math.max(0, Math.floor(Number(input.value) || 0)));
+        input.value = S.packages[i][field];
+      } else {
+        S.packages[i][field] = Math.max(0, Number(input.value) || 0);
+        input.value = S.packages[i][field];
+      }
     });
   });
 
@@ -335,11 +349,13 @@ function del(i){
 }
 
 function addPkg(){
-  S.packages.push({min:15,price:400,tag:''});
+  S.packages.push({min:15,sec:0,price:400,tag:''});
   drawCfg();
 }
 
 async function saveCfg(){
+  S.packages = (S.packages || []).map(p => ({...p, sec:Number(p.sec) || 0}));
+
   const { error } = await sb.from('settings')
     .update({
       venue:$('cVenue').value,
@@ -397,7 +413,18 @@ function findRiskWords(value){
   return [...new Set(RISK_WORDS.filter(word => text.includes(word.replace(/\s+/g, '').toLowerCase())))];
 }
 
-async function approve(id,min){
+async function approve(id){
+  // อ่านข้อมูลรายการเพื่อใช้เวลาที่บันทึกไว้เป็นวินาทีจริง
+  const { data: current, error: readError } = await sb.from('orders')
+    .select('id,message,original_message,status,duration_seconds,minutes')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (readError || !current) {
+    alert('อ่านข้อมูลรายการไม่สำเร็จ: ' + (readError?.message || 'ไม่พบรายการ'));
+    return false;
+  }
+
   // ถ้ามีช่องแก้ข้อความในคิว ให้บันทึกข้อความก่อนอนุมัติ
   const editor = document.querySelector(`[data-message-editor="${CSS.escape(String(id))}"]`);
   if (editor) {
@@ -406,14 +433,7 @@ async function approve(id,min){
       alert('ข้อความต้องไม่เกิน 40 ตัวอักษร');
       return false;
     }
-    const { data: current, error: readError } = await sb.from('orders')
-      .select('id,message,original_message,status')
-      .eq('id', id)
-      .maybeSingle();
-    if (readError || !current) {
-      alert('อ่านข้อความเดิมไม่สำเร็จ: ' + (readError?.message || 'ไม่พบรายการ'));
-      return false;
-    }
+
     if (newMessage !== String(current.message || '')) {
       const original = current.original_message || current.message || '';
       const { error: saveError } = await sb.from('orders')
@@ -426,13 +446,17 @@ async function approve(id,min){
     }
   }
 
-  const currentText = editor ? editor.value.trim() : '';
+  const currentText = editor ? editor.value.trim() : String(current.message || '');
   const risks = findRiskWords(currentText);
   if (risks.length && !confirm('⚠️ พบคำที่อาจไม่เหมาะสม: ' + risks.join(', ') + '\n\nตรวจสอบข้อความแล้ว ต้องการอนุมัติต่อหรือไม่?')) return false;
-  const endAt = new Date(Date.now() + Number(min) * 60000).toISOString();
+
+  const durationSeconds = getOrderDurationSeconds(current);
+  const endAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+
   const { data, error } = await sb.from('orders')
     .update({
       status:'live',
+      duration_seconds:durationSeconds,
       approved_at:new Date().toISOString(),
       end_at:endAt
     })
@@ -564,7 +588,7 @@ async function processAutoApprove(pending){
   try {
     for(const o of pending){
       const { data:check, error } = await sb.from('orders')
-        .select('id,status,minutes')
+        .select('id,status,minutes,duration_seconds')
         .eq('id',o.id)
         .maybeSingle();
 
@@ -575,7 +599,7 @@ async function processAutoApprove(pending){
 
       if(!check || check.status !== 'pending') continue;
 
-      const ok = await approve(check.id, check.minutes);
+      const ok = await approve(check.id);
       if(!ok) break;
     }
   } finally {
@@ -652,7 +676,7 @@ function renderOrders(data){
           alt="">
 
         <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[9px] font-black">
-          ${o.minutes} นาที
+          ${formatDuration(getOrderDurationSeconds(o))}
         </span>
       </div>
 
@@ -693,7 +717,7 @@ function renderOrders(data){
     <button type="button"
       data-action="approve"
       data-id="${esc(o.id)}"
-      data-minutes="${Number(o.minutes) || 0}"
+      data-duration-seconds="${getOrderDurationSeconds(o)}"
       class="flex-1 h-10 rounded-xl bg-emerald-500 font-black text-[11px]">
       อนุมัติ
     </button>
@@ -830,7 +854,7 @@ async function loadHistory() {
       : `<p class="mt-2 text-[10px] text-slate-500">ยังไม่มีสลิป</p>`;
     const promote = canPromote
       ? `<button type="button" data-history-action="promote" data-id="${esc(o.id)}"
-           data-minutes="${Number(o.minutes) || 0}"
+           data-duration-seconds="${getOrderDurationSeconds(o)}"
            class="px-3 py-2 rounded-lg bg-emerald-500 text-white text-xs font-black">ขึ้นจอ</button>`
       : '';
     return `
@@ -852,7 +876,7 @@ async function loadHistory() {
             ${String(o.status || '').toLowerCase() === 'rejected' ? `<div class="mt-2 rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-xs text-red-200"><strong>❌ ถูกยกเลิก</strong><p class="mt-1">เหตุผล: ${esc(o.cancel_reason || 'ไม่มีข้อมูลเหตุผล (รายการเก่า)')}</p><p class="text-[10px] text-red-200/70 mt-1">เวลายกเลิก: ${esc(formatDateTime(o.cancelled_at))}</p><p class="text-[10px] mt-1">ไม่นับรวมยอดเงิน</p></div>` : ''}
             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
               <span class="text-emerald-300 font-black">ยอดเงิน ฿${Number(o.amount ?? o.price ?? 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-              <span class="text-slate-400">เวลา ${Number(o.minutes) || 0} นาที</span>
+              <span class="text-slate-400">เวลา ${formatDuration(getOrderDurationSeconds(o))}</span>
               <span class="text-slate-500">Order #${esc(String(o.id || '').slice(0, 8))}</span>
             </div>
             <div class="flex flex-wrap gap-2 mt-3">
