@@ -9,10 +9,72 @@
 <style>
 input{font-size:16px!important}
 button{touch-action:manipulation}
+
+/* Visible notification popup */
+#warpToastStack{
+  position:fixed;z-index:99999;top:calc(14px + env(safe-area-inset-top));
+  left:50%;transform:translateX(-50%);width:min(92vw,460px);
+  display:flex;flex-direction:column;gap:10px;pointer-events:none
+}
+.warp-toast{
+  pointer-events:auto;display:flex;align-items:flex-start;gap:11px;
+  padding:14px 15px;border-radius:17px;color:#fff;
+  background:rgba(15,23,42,.97);border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 50px rgba(0,0,0,.38);backdrop-filter:blur(12px);
+  animation:warpToastIn .22s ease-out;white-space:pre-wrap;overflow-wrap:anywhere;
+  font-size:14px;line-height:1.5
+}
+.warp-toast.success{border-color:rgba(52,211,153,.55)}
+.warp-toast.error{border-color:rgba(248,113,113,.65)}
+.warp-toast.warning{border-color:rgba(251,191,36,.65)}
+.warp-toast .warp-toast-icon{font-size:19px;line-height:1.2;flex:none}
+.warp-toast .warp-toast-close{margin-left:auto;opacity:.7;font-size:20px;line-height:1;flex:none}
+@keyframes warpToastIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+
 </style>
 </head>
 
 <body class="bg-slate-950 text-white font-[system-ui]">
+
+<script>
+(function(){
+  const stack=document.createElement('div');
+  stack.id='warpToastStack';
+  stack.setAttribute('aria-live','polite');
+  stack.setAttribute('aria-atomic','false');
+  document.body.appendChild(stack);
+
+  window.showToast=function(message,type){
+    const msg=String(message ?? '').trim();
+    if(!msg) return;
+    const inferred=type || (
+      /ไม่สำเร็จ|ผิดพลาด|error|failed|ไม่สามารถ|หมดเวลา/i.test(msg) ? 'error' :
+      /กรุณา|เตือน|ระวัง|หมด|ไม่พบ/i.test(msg) ? 'warning' :
+      /บันทึกแล้ว|สำเร็จ|เรียบร้อย|ส่งรายการแล้ว/i.test(msg) ? 'success' : 'info'
+    );
+    const item=document.createElement('div');
+    item.className='warp-toast '+inferred;
+    const icon=document.createElement('span');
+    icon.className='warp-toast-icon';
+    icon.textContent=inferred==='success'?'✓':inferred==='error'?'✕':inferred==='warning'?'⚠':'ℹ';
+    const body=document.createElement('div');
+    body.style.flex='1';
+    body.textContent=msg;
+    const close=document.createElement('button');
+    close.type='button';close.className='warp-toast-close';
+    close.setAttribute('aria-label','ปิดการแจ้งเตือน');
+    close.textContent='×';
+    close.onclick=()=>item.remove();
+    item.append(icon,body,close);
+    stack.appendChild(item);
+    const duration=Math.min(10000,Math.max(4500,msg.length*65));
+    setTimeout(()=>{item.style.opacity='0';item.style.transform='translateY(-8px)';setTimeout(()=>item.remove(),220)},duration);
+  };
+  // เปลี่ยน alert เดิมทั้งหมดให้เป็นกล่องแจ้งเตือนบนหน้าเว็บ
+  window.alert=function(message){window.showToast(message);};
+})();
+</script>
+
 
 <div id="login" class="min-h-[100dvh] grid place-items-center p-6">
   <div class="w-full max-w-xs">
@@ -566,8 +628,6 @@ async function reject(id){
 }
 
 async function kill(id){
-  console.log('KILL CLICK:', id);
-
   const ok = confirm('ต้องการลบรายการนี้ออกจากจอใช่หรือไม่?');
   if(!ok) return false;
 
@@ -578,9 +638,6 @@ async function kill(id){
     })
     .eq('id',id)
     .select('id,status,end_at');
-
-  console.log('KILL RESULT:', data);
-  console.log('KILL ERROR:', error);
 
   if(error){
     alert('❌ ลบออกจากจอไม่สำเร็จ\n\n' + error.message);
@@ -625,7 +682,7 @@ async function processAutoApprove(pending){
         .maybeSingle();
 
       if(error) {
-        console.error('AUTO APPROVE CHECK:', error);
+        window.showToast('ตรวจสอบรายการเพื่ออนุมัติอัตโนมัติไม่สำเร็จ: ' + (error?.message || error), 'error');
         continue;
       }
 
@@ -654,7 +711,7 @@ async function load(){
       .order('created_at');
 
     if(error){
-      console.error('LOAD ORDERS ERROR:', error);
+      window.showToast('โหลดรายการไม่สำเร็จ: ' + (error?.message || error), 'error');
       return;
     }
 
@@ -669,7 +726,7 @@ async function load(){
         .order('created_at');
 
       if(newError){
-        console.error('RELOAD AFTER AUTO ERROR:', newError);
+        window.showToast('โหลดรายการหลังอนุมัติอัตโนมัติไม่สำเร็จ: ' + (newError?.message || newError), 'error');
         renderOrders(data);
       } else {
         renderOrders(newData || []);
@@ -818,7 +875,7 @@ async function loadHistory() {
     .limit(1000);
 
   if (error) {
-    console.error('LOAD HISTORY ERROR:', error);
+    window.showToast('โหลดประวัติไม่สำเร็จ: ' + (error?.message || error), 'error');
     $('historyMessage').textContent = 'โหลดประวัติไม่สำเร็จ: ' + error.message;
     $('historyList').innerHTML =
       '<p class="text-sm text-red-300 py-4">ไม่สามารถโหลดประวัติได้ กรุณาตรวจสอบสิทธิ์อ่านข้อมูล (RLS) ของตาราง orders</p>';

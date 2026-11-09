@@ -646,9 +646,6 @@ function makeQR(canvas, size){
 
     e => {
 
-      if(e)
-        console.error('QR:',e);
-
     }
 
   );
@@ -914,8 +911,7 @@ async function updatePendingCount(){
     const el = document.getElementById('pendingCount');
     if(el) el.textContent = String(Number(data) || 0);
   }catch(e){
-    console.error('PENDING COUNT ERROR:', e);
-  }
+      }
 }
 
 /* =========================================================
@@ -1525,11 +1521,7 @@ async function fetchLiveOrders(){
 
   if(error){
 
-    console.error(
-      'LOAD LIVE ORDERS ERROR:',
-      error
-    );
-
+    
     return null;
 
   }
@@ -1577,11 +1569,7 @@ async function startCardTimer(o){
 
   if(error){
 
-    console.error(
-      'START CARD TIMER ERROR:',
-      error
-    );
-
+    
     return null;
 
   }
@@ -1589,11 +1577,7 @@ async function startCardTimer(o){
 
   if(!data || !data.length){
 
-    console.warn(
-      'ไม่สามารถเริ่มเวลาให้การ์ด:',
-      o.id
-    );
-
+    
     return null;
 
   }
@@ -1788,11 +1772,7 @@ async function load(){
 
     if(doneError){
 
-      console.error(
-        'FINISH CARD ERROR:',
-        doneError
-      );
-
+      
       return;
 
     }

@@ -73,11 +73,7 @@ async function getSettings(){
 
   if(error){
 
-    console.error(
-      'GET SETTINGS ERROR:',
-      error
-    );
-
+    
     return null;
   }
 
@@ -375,10 +371,7 @@ function readSlipQR(file){
             'undefined'
           ){
 
-            console.warn(
-              'jsQR library not found'
-            );
-
+            
             return res(null);
           }
 
@@ -456,11 +449,7 @@ async function upload(
 
   if(error){
 
-    console.error(
-      'UPLOAD ERROR:',
-      error
-    );
-
+    
     throw error;
   }
 
