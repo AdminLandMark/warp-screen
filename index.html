@@ -610,31 +610,63 @@ let S,
     order = null;
 
 /* =========================================================
-   เวลาปิดรับอัปโหลด / ชำระเงิน (เวลาไทยตามเครื่องที่เปิดหน้า)
+   เวลาเปิดรับ / ปิดรับอัปโหลดและชำระเงิน (เวลาไทย)
    ========================================================= */
-function isUploadClosed(){
-  const cutoff = String(S?.upload_cutoff_time || '22:50');
-  const match = cutoff.match(/^(\\d{2}):(\\d{2})$/);
-  if(!match) return false;
+function getUploadWindow(){
+  const openTime = String(S?.upload_open_time || '10:00');
+  const closeTime = String(S?.upload_cutoff_time || '22:50');
+  return {
+    openTime: /^\d{2}:\d{2}$/.test(openTime) ? openTime : '10:00',
+    closeTime: /^\d{2}:\d{2}$/.test(closeTime) ? closeTime : '22:50'
+  };
+}
 
-  const bangkokTime = new Intl.DateTimeFormat('en-GB', {
+function getBangkokMinutes(){
+  const time = new Intl.DateTimeFormat('en-GB', {
     timeZone:'Asia/Bangkok',
     hour:'2-digit',
     minute:'2-digit',
     hourCycle:'h23'
   }).format(new Date());
-  const [hour, minute] = bangkokTime.split(':').map(Number);
-  const nowMinutes = hour * 60 + minute;
-  const cutoffMinutes = Number(match[1]) * 60 + Number(match[2]);
-  return nowMinutes >= cutoffMinutes;
+
+  const [hour, minute] = time.split(':').map(Number);
+  return hour * 60 + minute;
+}
+
+function isUploadOpen(){
+  const {openTime, closeTime} = getUploadWindow();
+  const [openHour, openMinute] = openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+
+  const openMinutes = openHour * 60 + openMinute;
+  const closeMinutes = closeHour * 60 + closeMinute;
+  const nowMinutes = getBangkokMinutes();
+
+  if(openMinutes === closeMinutes) return false;
+
+  // รองรับทั้งช่วงเวลาในวันเดียวกัน และช่วงเวลาข้ามเที่ยงคืน
+  if(openMinutes < closeMinutes){
+    return nowMinutes >= openMinutes && nowMinutes < closeMinutes;
+  }
+
+  return nowMinutes >= openMinutes || nowMinutes < closeMinutes;
+}
+
+function isUploadClosed(){
+  return !isUploadOpen();
 }
 
 async function checkUploadDeadline(){
   try{
     const latest = await getSettings();
-    if(latest) S = latest;
+    if(!latest){
+      console.warn('ไม่สามารถตรวจสอบเวลาเปิด-ปิดรับจาก settings ได้');
+      return true; // ตรวจสอบเวลาไม่ได้ ให้ปิดการส่งไว้ก่อน
+    }
+    S = latest;
   }catch(e){
     console.warn('REFRESH UPLOAD SETTINGS:', e);
+    return true;
   }
   return isUploadClosed();
 }
@@ -642,7 +674,6 @@ async function checkUploadDeadline(){
 function showUploadClosed(){
   alert('หมดเวลาขึ้นวาร์ปแล้ว');
 }
-
 
 /* =========================================================
    แพลตฟอร์ม
@@ -777,6 +808,12 @@ function go(n){
    ========================================================= */
 
 async function pick(el){
+
+  if(await checkUploadDeadline()){
+    showUploadClosed();
+    el.value = '';
+    return;
+  }
 
   const f = el.files[0];
 
@@ -1248,7 +1285,7 @@ async function n2(){
 
   try{
 
-    if(isUploadClosed()){
+    if(await checkUploadDeadline()){
       showUploadClosed();
       return;
     }
@@ -1274,7 +1311,7 @@ async function n2(){
      * ==========================================
      */
 
-    if(isUploadClosed()){
+    if(await checkUploadDeadline()){
       showUploadClosed();
       return;
     }

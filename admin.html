@@ -81,12 +81,21 @@ button{touch-action:manipulation}
         PromptPay
         <input id="cPP" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
       </label>
-      <label class="block text-[11px] text-slate-400">
-        เวลาปิดรับอัปโหลด / ชำระเงิน
-        <input id="cCutoff" type="time" value="22:50"
-          class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
-        <span class="block text-[10px] text-slate-500 mt-1">เมื่อถึงเวลานี้ ลูกค้าจะไม่สามารถไปขั้นตอนถัดไปหรือส่งสลิปได้</span>
-      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block text-[11px] text-slate-400">
+          เวลาเปิดรับอัปโหลด / ชำระเงิน
+          <input id="cOpenTime" type="time" value="10:00"
+            class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
+        </label>
+        <label class="block text-[11px] text-slate-400">
+          เวลาปิดรับอัปโหลด / ชำระเงิน
+          <input id="cCutoff" type="time" value="22:50"
+            class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
+        </label>
+      </div>
+      <p class="text-[10px] text-slate-500 -mt-1">
+        นอกช่วงเวลาที่กำหนด ลูกค้าจะอัปโหลดภาพ สร้างรายการ และส่งสลิปไม่ได้ ระบบใช้เวลาไทย (Asia/Bangkok)
+      </p>
       <button id="saveCfgBtn" type="button" class="w-full h-12 rounded-xl bg-cyan-500 font-black text-sm">บันทึกการตั้งค่า</button>
     </div>
   </details>
@@ -273,6 +282,8 @@ async function start(){
 
   $('cVenue').value = S.venue || '';
   $('cPP').value = S.promptpay || '';
+
+  $('cOpenTime').value = S.upload_open_time || '10:00';
   $('cCutoff').value = S.upload_cutoff_time || '22:50';
 
   S.packages = (S.packages || []).map(p => ({...p, sec:Number(p.sec) || 0}));
@@ -356,17 +367,38 @@ function addPkg(){
 async function saveCfg(){
   S.packages = (S.packages || []).map(p => ({...p, sec:Number(p.sec) || 0}));
 
+  const openTime = $('cOpenTime').value;
+  const closeTime = $('cCutoff').value;
+
+  if(!openTime || !closeTime){
+    alert('กรุณากำหนดเวลาเปิดรับและเวลาปิดรับให้ครบ');
+    return;
+  }
+
+  if(openTime === closeTime){
+    alert('เวลาเปิดรับและเวลาปิดรับห้ามเป็นเวลาเดียวกัน');
+    return;
+  }
+
+  // บันทึกเวลาเปิดและเวลาปิดแยกคอลัมน์ใน settings
+
   const { error } = await sb.from('settings')
     .update({
       venue:$('cVenue').value,
       promptpay:$('cPP').value,
       packages:S.packages,
-      upload_cutoff_time:$('cCutoff').value || '22:50' 
+      upload_open_time:openTime,
+      upload_cutoff_time:closeTime
     })
     .eq('id',1);
 
-  if(!error) S.upload_cutoff_time = $('cCutoff').value || '22:50';
-  alert(error ? ('บันทึกไม่สำเร็จ: ' + error.message + '\n\nตรวจสอบว่ารัน SQL เพิ่มคอลัมน์ upload_cutoff_time และ approved_at แล้ว') : 'บันทึกแล้ว ✓');
+  if(!error) {
+    S.upload_open_time = openTime;
+    S.upload_cutoff_time = closeTime;
+    alert('บันทึกแล้ว ✓\nเปิดรับ: ' + openTime + '\nปิดรับ: ' + closeTime);
+  } else {
+    alert('บันทึกไม่สำเร็จ: ' + error.message);
+  }
 }
 
 function updateAutoUI(){
