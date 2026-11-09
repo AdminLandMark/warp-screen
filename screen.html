@@ -903,6 +903,22 @@ function renderTestCard(){
 
 
 /* =========================================================
+   จำนวนรายการรออนุมัติ (แสดงเฉพาะตัวเลขบนหน้า QR ใหญ่)
+   ========================================================= */
+async function updatePendingCount(){
+  try{
+    const { data, error } = await sb.rpc('get_warp_pending_count');
+
+    if(error) throw error;
+
+    const el = document.getElementById('pendingCount');
+    if(el) el.textContent = String(Number(data) || 0);
+  }catch(e){
+    console.error('PENDING COUNT ERROR:', e);
+  }
+}
+
+/* =========================================================
    หน้าจอว่าง
    ========================================================= */
 
@@ -1011,12 +1027,21 @@ function idle(){
         class="
           mt-[3vh]
           inline-block
+          relative
           bg-white
           rounded-[2.5vh]
           p-[2vh]
           pulse2
         "
       >
+
+        <span
+          id="pendingCount"
+          class="absolute -top-[1.8vh] -right-[1.8vh] min-w-[5vh] h-[5vh]
+                 px-[1vh] rounded-full bg-red-600 text-white
+                 grid place-items-center text-[2.8vh] font-black
+                 border-[.5vh] border-slate-950 shadow-xl tabular-nums"
+        >0</span>
 
         <canvas
           id="qrBig">
@@ -1094,6 +1119,8 @@ function idle(){
     )
 
   );
+
+  updatePendingCount();
 
 }
 
@@ -1412,8 +1439,13 @@ setInterval(()=>{
    ========================================================= */
 function approvedTime(o){
 
+  if(o.approved_at){
+    const approved = new Date(o.approved_at).getTime();
+    if(Number.isFinite(approved)) return approved;
+  }
+
   const end =
-    new Date(o.end_at).getTime();
+    o.end_at ? new Date(o.end_at).getTime() : NaN;
 
   const minutes =
     Number(o.minutes) || 0;
@@ -1950,6 +1982,9 @@ sb
 
     payload => {
 
+      // อัปเดตตัวเลขคิวรออนุมัติ โดยไม่วาดการ์ดปัจจุบันใหม่
+      updatePendingCount();
+
       /*
        * สำคัญมาก:
        *
@@ -2014,6 +2049,9 @@ sb
   )
 
   .subscribe();
+
+// สำรองกรณี Realtime ขาดช่วง: อัปเดตเฉพาะตัวเลข ไม่กระทบการ์ดที่กำลังแสดง
+setInterval(updatePendingCount, 30000);
 
 
 /* =========================================================
@@ -2084,6 +2122,7 @@ addEventListener(
 
   idle();
 
+  updatePendingCount();
 
   load();
 

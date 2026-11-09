@@ -609,6 +609,40 @@ let S,
     pkg = null,
     order = null;
 
+/* =========================================================
+   เวลาปิดรับอัปโหลด / ชำระเงิน (เวลาไทยตามเครื่องที่เปิดหน้า)
+   ========================================================= */
+function isUploadClosed(){
+  const cutoff = String(S?.upload_cutoff_time || '22:50');
+  const match = cutoff.match(/^(\\d{2}):(\\d{2})$/);
+  if(!match) return false;
+
+  const bangkokTime = new Intl.DateTimeFormat('en-GB', {
+    timeZone:'Asia/Bangkok',
+    hour:'2-digit',
+    minute:'2-digit',
+    hourCycle:'h23'
+  }).format(new Date());
+  const [hour, minute] = bangkokTime.split(':').map(Number);
+  const nowMinutes = hour * 60 + minute;
+  const cutoffMinutes = Number(match[1]) * 60 + Number(match[2]);
+  return nowMinutes >= cutoffMinutes;
+}
+
+async function checkUploadDeadline(){
+  try{
+    const latest = await getSettings();
+    if(latest) S = latest;
+  }catch(e){
+    console.warn('REFRESH UPLOAD SETTINGS:', e);
+  }
+  return isUploadClosed();
+}
+
+function showUploadClosed(){
+  alert('หมดเวลาขึ้นวาร์ปแล้ว');
+}
+
 
 /* =========================================================
    แพลตฟอร์ม
@@ -767,7 +801,12 @@ async function pick(el){
    Step 1
    ========================================================= */
 
-function n1(){
+async function n1(){
+
+  if(await checkUploadDeadline()){
+    showUploadClosed();
+    return;
+  }
 
   if(!blob){
 
@@ -1131,6 +1170,11 @@ function setPkg(i,el){
 
 async function n2(){
 
+  if(await checkUploadDeadline()){
+    showUploadClosed();
+    return;
+  }
+
   if(!pkg){
 
     return alert(
@@ -1196,6 +1240,11 @@ async function n2(){
 
   try{
 
+    if(isUploadClosed()){
+      showUploadClosed();
+      return;
+    }
+
     const id =
       crypto.randomUUID();
 
@@ -1216,6 +1265,11 @@ async function n2(){
      * จะเป็นค่าเดียวกับปุ่มที่เลือก
      * ==========================================
      */
+
+    if(isUploadClosed()){
+      showUploadClosed();
+      return;
+    }
 
     const orderData = {
 
@@ -1403,6 +1457,12 @@ const saveQR = async () => {
 
 async function slip(el){
 
+  if(await checkUploadDeadline()){
+    showUploadClosed();
+    el.value = '';
+    return;
+  }
+
   const f =
     el.files[0];
 
@@ -1454,6 +1514,11 @@ async function slip(el){
 
 
   try{
+
+    if(await checkUploadDeadline()){
+      showUploadClosed();
+      return;
+    }
 
     const su =
       await upload(

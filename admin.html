@@ -81,6 +81,12 @@ button{touch-action:manipulation}
         PromptPay
         <input id="cPP" class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
       </label>
+      <label class="block text-[11px] text-slate-400">
+        เวลาปิดรับอัปโหลด / ชำระเงิน
+        <input id="cCutoff" type="time" value="22:50"
+          class="w-full mt-1 bg-black/40 rounded-xl px-3 h-12">
+        <span class="block text-[10px] text-slate-500 mt-1">เมื่อถึงเวลานี้ ลูกค้าจะไม่สามารถไปขั้นตอนถัดไปหรือส่งสลิปได้</span>
+      </label>
       <button id="saveCfgBtn" type="button" class="w-full h-12 rounded-xl bg-cyan-500 font-black text-sm">บันทึกการตั้งค่า</button>
     </div>
   </details>
@@ -267,6 +273,7 @@ async function start(){
 
   $('cVenue').value = S.venue || '';
   $('cPP').value = S.promptpay || '';
+  $('cCutoff').value = S.upload_cutoff_time || '22:50';
 
   drawCfg();
   updateAutoUI();
@@ -337,11 +344,13 @@ async function saveCfg(){
     .update({
       venue:$('cVenue').value,
       promptpay:$('cPP').value,
-      packages:S.packages
+      packages:S.packages,
+      upload_cutoff_time:$('cCutoff').value || '22:50' 
     })
     .eq('id',1);
 
-  alert(error ? error.message : 'บันทึกแล้ว ✓');
+  if(!error) S.upload_cutoff_time = $('cCutoff').value || '22:50';
+  alert(error ? ('บันทึกไม่สำเร็จ: ' + error.message + '\n\nตรวจสอบว่ารัน SQL เพิ่มคอลัมน์ upload_cutoff_time และ approved_at แล้ว') : 'บันทึกแล้ว ✓');
 }
 
 function updateAutoUI(){
@@ -420,13 +429,11 @@ async function approve(id,min){
   const currentText = editor ? editor.value.trim() : '';
   const risks = findRiskWords(currentText);
   if (risks.length && !confirm('⚠️ พบคำที่อาจไม่เหมาะสม: ' + risks.join(', ') + '\n\nตรวจสอบข้อความแล้ว ต้องการอนุมัติต่อหรือไม่?')) return false;
-  const endAt = new Date(
-    Date.now() + Number(min) * 60000
-  ).toISOString();
-
+  const endAt = new Date(Date.now() + Number(min) * 60000).toISOString();
   const { data, error } = await sb.from('orders')
     .update({
       status:'live',
+      approved_at:new Date().toISOString(),
       end_at:endAt
     })
     .eq('id',id)
